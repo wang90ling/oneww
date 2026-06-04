@@ -76,9 +76,7 @@ class ApiService {
     }
   }
 
-  /**
-   * 发送验证码接口
-   */
+  /// 发送验证码接口
   Future<Map<String, dynamic>> sendTelephoneCode({
     required String phoneCountryCode,
     required String telephone,
@@ -119,9 +117,7 @@ class ApiService {
   }
 
 
-  /**
-   * 验证码登录接口
-   */
+  /// 验证码登录接口
   Future<Map<String, dynamic>> loginByCode({
     required String phoneCountryCode,
     required String telephone,

@@ -5,6 +5,9 @@ import '../../core/network/api_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../home/home_page.dart';
 
+/**
+ * 登录页面
+ */
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -50,6 +53,8 @@ class _LoginPageState extends State<LoginPage> {
     return _phoneController.text.trim().isNotEmpty && _codeController.text.trim().isNotEmpty && _agree;
   }
 
+
+  ///获取手机验证码
   Future<void> _handleRequestCode() async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
@@ -78,6 +83,8 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
+  ///处理登录流程
   Future<void> _handleLogin() async {
     if (!_agree) {
       _showMessage('请先阅读并同意用户协议和隐私政策');
@@ -122,6 +129,8 @@ class _LoginPageState extends State<LoginPage> {
       _showMessage(result['message']?.toString() ?? '登录成功');
 
       if (!mounted) return;
+
+      ///跳转到主页面（登录成功）
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomePage()),
             (route) => false,
@@ -135,6 +144,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  ///提取token数据
   String? _extractToken(Map<String, dynamic> result) {
     final candidates = [
       result['token'],
@@ -152,6 +162,7 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
+  ///提取用户信息
   Map<String, dynamic>? _extractUserInfo(Map<String, dynamic> result) {
     final data = result['data'];
     if (data is Map<String, dynamic>) {

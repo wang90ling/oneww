@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../core/helpers/auth_storage.dart';
 import '../pages/articles/article_detail_page.dart';
 import '../pages/articles/article_list_page.dart';
 import '../pages/home/home_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/request/request_demo_page.dart';
+import '../pages/shell/app_shell_page.dart';
 import '../pages/todo/todo_page.dart';
 import '../pages/webview/webview_page.dart';
+import '../core/helpers/auth_storage.dart';
 import 'app_routes.dart';
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.home:
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(builder: (_) => const AppShellPage());
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case AppRoutes.articleList:
@@ -42,7 +43,7 @@ class AppRouter {
       case AppRoutes.profile:
         return MaterialPageRoute(builder: (_) => const _AuthGuardPage(child: ProfilePage()));
       default:
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(builder: (_) => const AppShellPage());
     }
   }
 }

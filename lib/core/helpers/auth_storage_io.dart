@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+/**
+ * 本地数据保存
+ */
 class AuthStorage {
   static const String _tokenKey = 'auth_token';
   static const String _userInfoKey = 'auth_user_info';

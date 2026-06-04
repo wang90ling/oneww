@@ -1,5 +1,8 @@
 import 'dart:developer' as developer;
 
+/**
+ * 日志帮助类
+ */
 class AppLogger {
   static void info(String message, {String tag = 'APP'}) {
     final logMessage = '[${DateTime.now().toIso8601String()}] [$tag] INFO: $message';
