@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../models/app_user.dart';
+import '../../models/home_category_item.dart';
 import '../../models/todo_item.dart';
 import '../../models/wan_article_entity.dart';
 import '../../utils/network_endpoints.dart';
 import '../helpers/app_logger.dart';
+import '../helpers/auth_storage.dart';
 import 'network_client.dart';
 
 class ApiService {
@@ -17,7 +19,7 @@ class ApiService {
   Future<List<TodoItem>> fetchTodoItems() async {
     final uri = Uri.parse('${NetworkEndpoints.baseUrl}${NetworkEndpoints.todos}');
     final data = await _client.getList(uri);
-    AppLogger.info("data:"+data.toString(),tag: "wangling");
+    AppLogger.info("data:" + data.toString(), tag: "wangling");
 
     return data.map((item) {
       final map = item as Map<String, dynamic>;
@@ -31,7 +33,7 @@ class ApiService {
   Future<List<AppUser>> fetchUsers() async {
     final uri = Uri.parse('${NetworkEndpoints.baseUrl}${NetworkEndpoints.users}');
     AppLogger.info(
-      'baseUrl:'+uri.path,
+      'baseUrl:' + uri.path,
       tag: 'ApiService wangling',
     );
     final data = await _client.getList(uri);
@@ -97,14 +99,13 @@ class ApiService {
     AppLogger.info('请求短信验证码: $uri', tag: 'ApiService');
 
     try {
-      AppLogger.info("uri:"+uri.path,tag: "wangling");
+      AppLogger.info("uri:" + uri.path, tag: "wangling");
       return await _client.getJson(
         uri,
         headers: const <String, String>{
           'Accept': '*/*',
         },
       );
-
     } catch (error, stackTrace) {
       AppLogger.error(
         '发送短信验证码失败: $uri',
@@ -115,7 +116,6 @@ class ApiService {
       rethrow;
     }
   }
-
 
   /// 验证码登录接口
   Future<Map<String, dynamic>> loginByCode({
@@ -133,13 +133,13 @@ class ApiService {
         headers: const <String, String>{
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'x-device':'APP'
+          'x-device': 'APP'
         },
         body: <String, dynamic>{
-          'phoneCountryCode': "+86",
-          'telephone': "18800132062",
-          'code': "1111",
-          'password':"",
+          'phoneCountryCode': phoneCountryCode,
+          'telephone': telephone,
+          'code': code,
+          'password': '',
         },
       );
     } catch (error, stackTrace) {
@@ -153,4 +153,48 @@ class ApiService {
     }
   }
 
+  /// 获取首页游戏分类列表
+  Future<List<HomeCategoryItem>> getCategoryList() async {
+    final token = await _resolveToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getCategoryList}');
+
+    AppLogger.info('获取首页游戏分类列表: $uri', tag: 'ApiService');
+
+    try {
+      final response = await _client.getJson(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-device': 'APP',
+          if (token != null && token.isNotEmpty) 'authorization': token,
+        },
+      );
+
+      final data = response['data'];
+      if (data is List) {
+        return data
+            .whereType<Map<String, dynamic>>()
+            .map(HomeCategoryItem.fromJson)
+            .toList();
+      }
+      return <HomeCategoryItem>[];
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '获取首页游戏分类列表失败: $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
+      rethrow;
+    }
+  }
+
+  Future<String?> _resolveToken() async {
+    final token = await AuthStorage.getToken();
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+    return token.startsWith('Bearer ') ? token : 'Bearer $token';
+  }
 }

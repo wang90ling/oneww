@@ -6,8 +6,14 @@ class NetworkEndpoints {
   static const String posts = '/posts';
   static const String users = '/users';
   static const String todos = '/todos';
+
+  //发送验证码
   static const String sendTelephoneNew = '/code/send/telephoneNew';
+  //登录
   static const String loginCode = '/login/code';
+
+  //首页获取游戏类型的列表
+  static const String getCategoryList = '/homePage/getCategoryList';
 
   static String articleList(int page) => '/article/list/$page/json';
 }

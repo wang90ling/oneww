@@ -1,7 +1,54 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatelessWidget {
+import '../../core/network/api_service.dart';
+import '../../models/home_category_item.dart';
+
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final ApiService _apiService = ApiService();
+
+  bool _isLoadingCategories = true;
+  String? _categoryError;
+  List<HomeCategoryItem> _categories = const [];
+  int _selectedCategoryIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _isLoadingCategories = true;
+      _categoryError = null;
+    });
+
+    try {
+      final categories = await _apiService.getCategoryList();
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+        _selectedCategoryIndex = categories.isEmpty ? 0 : _selectedCategoryIndex.clamp(0, categories.length - 1);
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _categoryError = '加载游戏分类失败';
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,27 +209,8 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 18)),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 34,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: const [
-                    _TopCategoryTab(label: '推荐', selected: true),
-                    SizedBox(width: 14),
-                    _TopCategoryTab(label: '三角洲端游'),
-                    SizedBox(width: 14),
-                    _TopCategoryTab(label: '三角洲-可下单'),
-                    SizedBox(width: 14),
-                    _TopCategoryTab(label: '无畏契约'),
-                    SizedBox(width: 14),
-                    _TopCategoryTab(label: '更多'),
-                  ],
-                ),
-              ),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            SliverToBoxAdapter(child: _buildCategoryStrip(theme, colorScheme)),
             const SliverToBoxAdapter(child: SizedBox(height: 14)),
             SliverToBoxAdapter(
               child: Padding(
@@ -221,6 +249,76 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryStrip(ThemeData theme, ColorScheme colorScheme) {
+    if (_isLoadingCategories) {
+      return SizedBox(
+        height: 35,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          itemBuilder: (_, __) => Container(
+            width: 76,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+          separatorBuilder: (_, __) => const SizedBox(width: 5),
+          itemCount: 5,
+        ),
+      );
+    }
+
+    if (_categoryError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _categoryError!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadCategories,
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final tabs = <Widget>[
+      const _TopCategoryTab(label: '推荐', selected: true),
+      const SizedBox(width: 5),
+      ..._categories.asMap().entries.expand((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return [
+          _TopCategoryTab(
+            label: item.categoryName.isEmpty ? '分类${index + 1}' : item.categoryName,
+            selected: _selectedCategoryIndex == index,
+            onTap: () => setState(() => _selectedCategoryIndex = index),
+          ),
+          const SizedBox(width: 5),
+        ];
+      }),
+    ];
+
+    return SizedBox(
+      height: 35,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        children: tabs,
       ),
     );
   }
@@ -352,7 +450,8 @@ class _MiniActionCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -368,16 +467,17 @@ class _MiniActionCard extends StatelessWidget {
 }
 
 class _TopCategoryTab extends StatelessWidget {
-  const _TopCategoryTab({required this.label, this.selected = false});
+  const _TopCategoryTab({required this.label, this.selected = false, this.onTap});
 
   final String label;
   final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: selected ? const Color(0xFF111111) : Colors.transparent,
@@ -386,10 +486,21 @@ class _TopCategoryTab extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           color: selected ? Colors.white : colorScheme.onSurfaceVariant,
         ),
+      ),
+    );
+
+    if (onTap == null) return content;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: content,
       ),
     );
   }
