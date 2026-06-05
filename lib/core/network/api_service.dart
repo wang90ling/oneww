@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import '../../models/app_user.dart';
 import '../../models/home_category_item.dart';
+import '../../models/home_recommend.dart';
+import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
 import '../../models/wan_article_entity.dart';
 import '../../utils/network_endpoints.dart';
@@ -190,6 +192,7 @@ class ApiService {
     }
   }
 
+  //解析token
   Future<String?> _resolveToken() async {
     final token = await AuthStorage.getToken();
     if (token == null || token.isEmpty) {
@@ -197,4 +200,49 @@ class ApiService {
     }
     return token.startsWith('Bearer ') ? token : 'Bearer $token';
   }
+
+  /// 根据游戏类别加载选中的陪玩列表
+  /// getRecommendList 首页-推荐列表
+  Future<HomeRecommend> getRecommendList(RecommendRequest req) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/homePage/accompanyRecommendList');
+
+    AppLogger.info('推荐列表: $uri, body: ${req.toJson()}', tag: 'ApiService');
+
+    try {
+      final response = await _client.postJson(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-device': 'APP',
+          if (token != null && token.isNotEmpty) 'authorization': token,
+        },
+        body: req.toJson(),
+      );
+
+      final data = response['data'];
+      if (data is Map<String, dynamic>) {
+        return HomeRecommend.fromJson(data);
+      }
+      return const HomeRecommend(pageNo: "1", pageSize: "20", pages: "0", records: <UserRecord>[], total: "0");
+    } on http.ClientException catch (error, stackTrace) {
+      AppLogger.error(
+        '推荐列表请求失败(客户端): $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
+      return const HomeRecommend(pageNo: "1", pageSize: "20", pages: "0", records: <UserRecord>[], total: "0");
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '推荐列表: $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
+      return const HomeRecommend(pageNo: "1", pageSize: "20", pages: "0", records: <UserRecord>[], total: "0");
+    }
+  }
+
 }
