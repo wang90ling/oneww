@@ -210,13 +210,14 @@ class ApiService {
     AppLogger.info('推荐列表: $uri, body: ${req.toJson()}', tag: 'ApiService');
 
     try {
+      //post请求推荐列表
       final response = await _client.postJson(
         uri,
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'x-device': 'APP',
-          if (token != null && token.isNotEmpty) 'authorization': token,
+          if ( token != null && token.isNotEmpty) 'authorization': token,
         },
         body: req.toJson(),
       );

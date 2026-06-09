@@ -101,6 +101,9 @@ class _HomePageState extends State<HomePage> {
   Future<void> _onCategoryTap(int index) async {
     setState(() => _selectedCategoryIndex = index);
     final selected = _categories[index];
+
+    AppLogger.info("selected:"+selected.id,tag: "wangling");
+
     await _getRecommendList(categoryId: selected.id == 0 ? '' : selected.id.toString());
   }
 

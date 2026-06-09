@@ -201,7 +201,7 @@ class _SimpleTabPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                subtitle,
+                subtitle+'wangling',
                 textAlign: TextAlign.center,
               ),
             ],
