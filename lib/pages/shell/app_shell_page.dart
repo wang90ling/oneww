@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../circle/circle_page.dart';
 import '../home/home_page.dart';
 import '../profile/profile_page.dart';
 
@@ -15,7 +16,8 @@ class _AppShellPageState extends State<AppShellPage> {
 
   final List<Widget> _pages = const [
     HomePage(),
-    _SimpleTabPage(title: '圈子', subtitle: '圈子内容正在建设中'),
+    CirclePage(),
+    //_SimpleTabPage(title: '圈子', subtitle: '圈子内容正在建设中'),
     _SimpleTabPage(title: '树洞', subtitle: '树洞内容正在建设中', showCenterStyle: true),
     _SimpleTabPage(title: '消息', subtitle: '消息内容正在建设中'),
     ProfilePage(),
