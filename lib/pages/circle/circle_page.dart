@@ -1,9 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/helpers/app_logger.dart';
+import '../../core/helpers/auth_storage.dart';
 import '../../core/network/api_service.dart';
 import '../../models/new_circle_request.dart';
 import '../../models/post_list_response_entity.dart';
+import '../../utils/network_endpoints.dart';
 
 /// 圈子页面
 class CirclePage extends StatefulWidget {
@@ -16,13 +24,13 @@ class CirclePage extends StatefulWidget {
 class _CirclePageState extends State<CirclePage> {
   final ApiService _apiService = ApiService();
   final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
 
   int _selectedTabIndex = 1;
   bool _isPublishing = false;
-
   bool _isLoadingNewCircleList = true;
   String? _newCircleListError;
-  List<PostListResponseData> _newCircles = const [];
+  List<PostListResponseData> _newCircles = <PostListResponseData>[];
 
   @override
   void initState() {
@@ -52,27 +60,18 @@ class _CirclePageState extends State<CirclePage> {
         ),
       );
 
-      AppLogger.info('newPostResponse: ${response.data}', tag: 'wangling');
-
+      AppLogger.info('newPostResponse: ${response.data.length}', tag: 'CirclePage');
       if (!mounted) return;
       setState(() {
-        _newCircles = response.data ?? <PostListResponseData>[];
+        _newCircles = response.data;
       });
     } catch (error) {
-      AppLogger.error(
-        '加载最新圈子失败',
-        error: error,
-        tag: 'CirclePage',
-      );
+      AppLogger.error('加载最新圈子失败', error: error, tag: 'CirclePage');
       if (!mounted) return;
-      setState(() {
-        _newCircleListError = '加载最新圈子失败';
-      });
+      setState(() => _newCircleListError = '加载最新圈子失败');
     } finally {
       if (!mounted) return;
-      setState(() {
-        _isLoadingNewCircleList = false;
-      });
+      setState(() => _isLoadingNewCircleList = false);
     }
   }
 
@@ -81,30 +80,103 @@ class _CirclePageState extends State<CirclePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _PublishSheet(),
+      builder: (context) => _PublishSheet(imagePicker: _imagePicker),
     );
 
     if (!mounted || result == null) return;
 
     setState(() => _isPublishing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 600));
 
-    if (!mounted) return;
+    try {
+      final uploadedMediaUrls = <String>[];
+      for (final media in result.mediaFiles) {
+        final url = await _uploadLocalMedia(media, result.type);
+        if (url.isNotEmpty) uploadedMediaUrls.add(url);
+      }
 
-    setState(() {
-      _isPublishing = false;
-    });
+      await Future<void>.delayed(const Duration(milliseconds: 300));
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(const SnackBar(content: Text('动态发布成功')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text('动态发布成功，已上传 ${uploadedMediaUrls.length} 个媒体文件')));
+
+      await _getNewCircleList();
+    } catch (error) {
+      AppLogger.error('发布圈子失败', error: error, tag: 'CirclePage');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(const SnackBar(content: Text('发布失败，请重试')));
+    } finally {
+      if (!mounted) return;
+      setState(() => _isPublishing = false);
+    }
+  }
+
+  Future<String> _uploadLocalMedia(XFile file, _PostType type) async {
+    final token = await AuthStorage.getToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.uploadMedia}');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll(<String, String>{
+        'Accept': 'application/json',
+        'x-device': 'APP',
+        if (token != null && token.isNotEmpty) 'authorization': token.startsWith('Bearer ') ? token : 'Bearer $token',
+      });
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: file.name,
+      ),
+    );
+
+    request.fields['mediaType'] = type == _PostType.video ? 'video' : 'image';
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    AppLogger.info('upload response: ${response.body}', tag: 'CirclePage');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw http.ClientException('Upload failed with status ${response.statusCode}', uri);
+    }
+
+    final decoded = response.body.isNotEmpty ? http.Response(response.body, response.statusCode) : null;
+    if (decoded == null) return '';
+
+    final body = decoded.body;
+    if (body.isEmpty) return '';
+
+    // 兼容常见返回结构：{data:{url:''}} / {data:'url'} / {url:''}
+    final map = Uri.base.hasQuery ? <String, dynamic>{} : <String, dynamic>{};
+    try {
+      final json = body.startsWith('{') ? body : '';
+      if (json.isNotEmpty) {
+        final dynamic obj = jsonDecode(body);
+        if (obj is Map<String, dynamic>) {
+          final data = obj['data'];
+          if (data is Map<String, dynamic>) {
+            final url = data['url']?.toString() ?? data['fileUrl']?.toString() ?? '';
+            if (url.isNotEmpty) return url;
+          }
+          if (data is String && data.isNotEmpty) return data;
+          final url = obj['url']?.toString() ?? obj['fileUrl']?.toString() ?? '';
+          if (url.isNotEmpty) return url;
+        }
+      }
+    } catch (_) {
+      // ignore parse fallback
+    }
+
+    return '';
   }
 
   void _toggleLike(int index) {
     setState(() {
       final post = _newCircles[index];
       final liked = (post.likedFlag ?? 0) == 1;
-
       post.likedFlag = liked ? 0 : 1;
       final count = post.likesCount ?? 0;
       post.likesCount = liked ? (count > 0 ? count - 1 : 0) : count + 1;
@@ -148,7 +220,6 @@ class _CirclePageState extends State<CirclePage> {
               slivers: [
                 SliverToBoxAdapter(child: _buildTopTabs(theme)),
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -165,10 +236,7 @@ class _CirclePageState extends State<CirclePage> {
                           const CircleAvatar(
                             radius: 24,
                             backgroundColor: Colors.white,
-                            child: Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Color(0xFF7A5CFF),
-                            ),
+                            child: Icon(Icons.auto_awesome_rounded, color: Color(0xFF7A5CFF)),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -196,9 +264,7 @@ class _CirclePageState extends State<CirclePage> {
                     ),
                   ),
                 ),
-
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
                 if (_isLoadingNewCircleList && _newCircles.isEmpty)
                   const SliverFillRemaining(
                     hasScrollBody: false,
@@ -250,20 +316,16 @@ class _CirclePageState extends State<CirclePage> {
                         },
                       ),
                     ),
-
                 const SliverToBoxAdapter(child: SizedBox(height: 90)),
               ],
             ),
-
             Positioned(
               right: 16,
               bottom: 24,
               child: AnimatedScale(
                 scale: _isPublishing ? 0.95 : 1,
                 duration: const Duration(milliseconds: 180),
-                child: _PublishFloatingButton(
-                  onTap: _openPublishSheet,
-                ),
+                child: _PublishFloatingButton(onTap: _openPublishSheet),
               ),
             ),
           ],
@@ -274,28 +336,24 @@ class _CirclePageState extends State<CirclePage> {
 
   Widget _buildTopTabs(ThemeData theme) {
     final tabs = ['关注', '最新', '最热'];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          ...List.generate(tabs.length, (index) {
-            final selected = _selectedTabIndex == index;
-            return Padding(
-              padding: EdgeInsets.only(right: index == tabs.length - 1 ? 0 : 24),
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedTabIndex = index),
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  style: theme.textTheme.titleLarge!.copyWith(
-                    fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
-                    color: selected ? const Color(0xFF111111) : Colors.grey.shade600,
-                  ),
-                  child: Text(tabs[index]),
+          for (int index = 0; index < tabs.length; index++) ...[
+            GestureDetector(
+              onTap: () => setState(() => _selectedTabIndex = index),
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                style: theme.textTheme.titleLarge!.copyWith(
+                  fontWeight: _selectedTabIndex == index ? FontWeight.w900 : FontWeight.w600,
+                  color: _selectedTabIndex == index ? const Color(0xFF111111) : Colors.grey.shade600,
                 ),
+                child: Text(tabs[index]),
               ),
-            );
-          }),
+            ),
+            if (index != tabs.length - 1) const SizedBox(width: 24),
+          ],
           const Spacer(),
           Container(
             width: 38,
@@ -333,28 +391,21 @@ class _CirclePostCard extends StatelessWidget {
 
   List<_MediaPreview> get _medias {
     final result = <_MediaPreview>[];
-
     final details = post.fileDetails ?? <PostListResponseDataFileDetails>[];
+
     for (final item in details) {
       final fileUrl = (item.fileUrl ?? '').trim();
       final coverUrl = (item.firstSnapshot ?? '').trim();
-
       final displayUrl = _isVideoPost
           ? (coverUrl.isNotEmpty ? coverUrl : fileUrl)
           : (fileUrl.isNotEmpty ? fileUrl : coverUrl);
-
       if (displayUrl.isNotEmpty) {
-        result.add(
-          _MediaPreview(
-            url: displayUrl,
-            isVideo: _isVideoPost,
-          ),
-        );
+        result.add(_MediaPreview(url: displayUrl, isVideo: _isVideoPost));
       }
     }
 
     if (result.isEmpty) {
-      for (final url in post.files ?? const <String>[]) {
+      for (final url in post.files ?? <String>[]) {
         final clean = url.trim();
         if (clean.isNotEmpty) {
           result.add(_MediaPreview(url: clean, isVideo: _isVideoPost));
@@ -369,10 +420,12 @@ class _CirclePostCard extends StatelessWidget {
     final count = value ?? 0;
     if (count <= 0) return emptyText;
     if (count >= 10000) {
-      return '${(count / 10000).toStringAsFixed(count % 10000 == 0 ? 0 : 1)}w';
+      final v = count / 10000;
+      return '${v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1)}w';
     }
     if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(count % 1000 == 0 ? 0 : 1)}k';
+      final v = count / 1000;
+      return '${v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1)}k';
     }
     return '$count';
   }
@@ -381,7 +434,6 @@ class _CirclePostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
     final nickName = (post.userInfo?.nickName ?? '匿名用户').trim();
     final avatarUrl = (post.userInfo?.avatar ?? post.userInfo?.moduleAvatar ?? '').trim();
     final timeText = (post.createTime ?? '').trim();
@@ -391,8 +443,8 @@ class _CirclePostCard extends StatelessWidget {
 
     final tags = <String>[
       ...?post.subjects
-          ?.map((e) => e.name ?? '')
-          .where((e) => e.trim().isNotEmpty)
+          ?.map((e) => (e.name ?? '').trim())
+          .where((e) => e.isNotEmpty)
           .map((e) => '#$e'),
       if (location.isNotEmpty) '#$location',
     ];
@@ -435,9 +487,9 @@ class _CirclePostCard extends StatelessWidget {
                         ),
                         if ((post.topFlag ?? 0) == 1) ...[
                           const SizedBox(width: 6),
-                          _Badge(
+                          const _Badge(
                             text: '置顶',
-                            colors: const [Color(0xFF5A7BFF), Color(0xFFEF6AD7)],
+                            colors: [Color(0xFF5A7BFF), Color(0xFFEF6AD7)],
                           ),
                         ],
                       ],
@@ -453,11 +505,7 @@ class _CirclePostCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 14,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          Icon(Icons.location_on_outlined, size: 14, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -478,7 +526,6 @@ class _CirclePostCard extends StatelessWidget {
               Icon(Icons.more_vert_rounded, color: colorScheme.onSurfaceVariant),
             ],
           ),
-
           if (content.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -489,7 +536,6 @@ class _CirclePostCard extends StatelessWidget {
               ),
             ),
           ],
-
           if (tags.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
@@ -516,14 +562,11 @@ class _CirclePostCard extends StatelessWidget {
                   .toList(),
             ),
           ],
-
           if (_medias.isNotEmpty) ...[
             const SizedBox(height: 12),
             _MediaGrid(media: _medias),
           ],
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               _ActionButton(
@@ -582,10 +625,7 @@ class _PostAvatar extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({
-    required this.text,
-    required this.colors,
-  });
+  const _Badge({required this.text, required this.colors});
 
   final String text;
   final List<Color> colors;
@@ -611,10 +651,7 @@ class _Badge extends StatelessWidget {
 }
 
 class _MediaPreview {
-  const _MediaPreview({
-    required this.url,
-    required this.isVideo,
-  });
+  const _MediaPreview({required this.url, required this.isVideo});
 
   final String url;
   final bool isVideo;
@@ -653,11 +690,7 @@ class _MediaGrid extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 26,
                       backgroundColor: Colors.white70,
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        size: 34,
-                        color: Color(0xFF7A5CFF),
-                      ),
+                      child: Icon(Icons.play_arrow_rounded, size: 34, color: Color(0xFF7A5CFF)),
                     ),
                   ),
                 ),
@@ -667,24 +700,25 @@ class _MediaGrid extends StatelessWidget {
       );
     }
 
-    final showCount = media.length > 4 ? 4 : media.length;
+    const maxGridCount = 9;
+    final showCount = media.length > maxGridCount ? maxGridCount : media.length;
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: showCount,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
         childAspectRatio: 1,
       ),
       itemBuilder: (context, index) {
         final item = media[index];
-        final showMore = index == 3 && media.length > 4;
+        final showMore = index == maxGridCount - 1 && media.length > maxGridCount;
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -700,11 +734,7 @@ class _MediaGrid extends StatelessWidget {
                 Container(
                   color: Colors.black.withValues(alpha: 0.18),
                   child: const Center(
-                    child: Icon(
-                      Icons.play_circle_fill_rounded,
-                      size: 32,
-                      color: Colors.white,
-                    ),
+                    child: Icon(Icons.play_circle_fill_rounded, size: 30, color: Colors.white),
                   ),
                 ),
               if (showMore)
@@ -712,10 +742,10 @@ class _MediaGrid extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.45),
                   child: Center(
                     child: Text(
-                      '+${media.length - 4}',
+                      '+${media.length - maxGridCount}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -785,9 +815,7 @@ class _PublishFloatingButton extends StatelessWidget {
             height: 58,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)],
-              ),
+              gradient: LinearGradient(colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)]),
               boxShadow: [
                 BoxShadow(
                   color: Color(0x337A5CFF),
@@ -808,11 +836,7 @@ class _PublishFloatingButton extends StatelessWidget {
           ),
           child: const Text(
             '发动态',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -853,9 +877,7 @@ class _CommentSheet extends StatelessWidget {
             children: [
               Text(
                 '评论 · ${post.commentCount ?? 0}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               IconButton(
@@ -887,10 +909,7 @@ class _CommentSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const CircleAvatar(
-                  radius: 18,
-                  child: Icon(Icons.person_rounded),
-                ),
+                const CircleAvatar(radius: 18, child: Icon(Icons.person_rounded)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -898,9 +917,7 @@ class _CommentSheet extends StatelessWidget {
                       hintText: '写下你的评论...',
                       border: InputBorder.none,
                       isDense: true,
-                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey,
-                      ),
+                      hintStyle: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
                     ),
                   ),
                 ),
@@ -922,7 +939,9 @@ class _CommentSheet extends StatelessWidget {
 }
 
 class _PublishSheet extends StatefulWidget {
-  const _PublishSheet();
+  const _PublishSheet({required this.imagePicker});
+
+  final ImagePicker imagePicker;
 
   @override
   State<_PublishSheet> createState() => _PublishSheetState();
@@ -930,8 +949,9 @@ class _PublishSheet extends StatefulWidget {
 
 class _PublishSheetState extends State<_PublishSheet> {
   final TextEditingController _contentController = TextEditingController();
-  final List<String> _mediaUrls = [];
+  final List<XFile> _mediaFiles = <XFile>[];
   _PostType _type = _PostType.text;
+  bool _isSelecting = false;
 
   @override
   void dispose() {
@@ -939,28 +959,54 @@ class _PublishSheetState extends State<_PublishSheet> {
     super.dispose();
   }
 
-  void _addDemoMedia() {
-    setState(() {
+  Future<void> _pickMedia() async {
+    if (_isSelecting) return;
+    setState(() => _isSelecting = true);
+
+    try {
       if (_type == _PostType.video) {
-        _mediaUrls
-          ..clear()
-          ..add(
-            'https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=900&q=80',
-          );
+        final video = await widget.imagePicker.pickVideo(source: ImageSource.gallery);
+        if (video == null) return;
+        setState(() {
+          _mediaFiles
+            ..clear()
+            ..add(video);
+        });
       } else {
-        _mediaUrls.addAll([
-          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
-          'https://images.unsplash.com/photo-1509395176047-4a66953fd231?auto=format&fit=crop&w=900&q=80',
-        ]);
+        final picked = await widget.imagePicker.pickMultiImage(imageQuality: 85);
+        if (picked.isEmpty) return;
+        setState(() {
+          _mediaFiles.addAll(picked.take(9 - _mediaFiles.length));
+        });
       }
-    });
+    } on PlatformException catch (error) {
+      AppLogger.error('打开媒体选择器失败', error: error, tag: 'CirclePage');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('无法打开选择器：${error.message ?? '请检查相册权限'}')),
+      );
+    } catch (error) {
+      AppLogger.error('选择媒体失败', error: error, tag: 'CirclePage');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('选择媒体失败，请检查权限后重试')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSelecting = false);
+      }
+    }
+  }
+
+  void _removeMediaAt(int index) {
+    setState(() => _mediaFiles.removeAt(index));
   }
 
   void _submit() {
     final content = _contentController.text.trim();
-    if (content.isEmpty && _mediaUrls.isEmpty) {
+    if (content.isEmpty && _mediaFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先输入内容或上传图片/视频')),
+        const SnackBar(content: Text('请先输入内容或选择图片/视频')),
       );
       return;
     }
@@ -970,7 +1016,7 @@ class _PublishSheetState extends State<_PublishSheet> {
       _PublishResult(
         content: content,
         type: _type,
-        mediaUrls: List<String>.from(_mediaUrls),
+        mediaFiles: List<XFile>.from(_mediaFiles),
         tags: const ['# 发动态'],
       ),
     );
@@ -980,6 +1026,61 @@ class _PublishSheetState extends State<_PublishSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final theme = Theme.of(context);
+
+    final previewGrid = _mediaFiles.isEmpty
+        ? const SizedBox.shrink()
+        : GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _mediaFiles.length > 9 ? 9 : _mediaFiles.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final item = _mediaFiles[index];
+        final isVideo = _type == _PostType.video || item.path.toLowerCase().endsWith('.mp4') || item.path.toLowerCase().endsWith('.mov');
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              isVideo
+                  ? Container(
+                color: const Color(0xFFF2F3F7),
+                child: const Center(
+                  child: Icon(Icons.videocam_rounded, size: 36, color: Color(0xFF7A5CFF)),
+                ),
+              )
+                  : Image.file(File(item.path), fit: BoxFit.cover),
+              Positioned(
+                right: 6,
+                top: 6,
+                child: GestureDetector(
+                  onTap: () => _removeMediaAt(index),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+              if (isVideo)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  child: const Center(
+                    child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 34),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottomInset),
@@ -1006,10 +1107,7 @@ class _PublishSheetState extends State<_PublishSheet> {
                   ),
                 ),
                 const Spacer(),
-                TextButton(
-                  onPressed: _submit,
-                  child: const Text('发布'),
-                ),
+                TextButton(onPressed: _submit, child: const Text('发布')),
               ],
             ),
             const SizedBox(height: 6),
@@ -1027,45 +1125,59 @@ class _PublishSheetState extends State<_PublishSheet> {
                       _TypeChip(
                         label: '纯文字',
                         selected: _type == _PostType.text,
-                        onTap: () => setState(() => _type = _PostType.text),
+                        onTap: () {
+                          setState(() {
+                            _type = _PostType.text;
+                            _mediaFiles.clear();
+                          });
+                        },
                       ),
                       const SizedBox(width: 8),
                       _TypeChip(
                         label: '图片',
                         selected: _type == _PostType.images,
-                        onTap: () => setState(() => _type = _PostType.images),
+                        onTap: () {
+                          setState(() {
+                            _type = _PostType.images;
+                            _mediaFiles.clear();
+                          });
+                        },
                       ),
                       const SizedBox(width: 8),
                       _TypeChip(
                         label: '视频',
                         selected: _type == _PostType.video,
-                        onTap: () => setState(() => _type = _PostType.video),
+                        onTap: () {
+                          setState(() {
+                            _type = _PostType.video;
+                            _mediaFiles.clear();
+                          });
+                        },
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
                   GestureDetector(
-                    onTap: _addDemoMedia,
+                    onTap: _pickMedia,
                     child: Container(
-                      width: 96,
-                      height: 96,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFE8EAF0)),
                       ),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.add_photo_alternate_outlined,
                             size: 34,
                             color: Color(0xFF8A8FA3),
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           Text(
-                            '上传图片/视频',
-                            style: TextStyle(
+                            _type == _PostType.video ? '选择视频' : '选择图片或视频',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF8A8FA3),
                             ),
@@ -1074,6 +1186,10 @@ class _PublishSheetState extends State<_PublishSheet> {
                       ),
                     ),
                   ),
+                  if (_mediaFiles.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    previewGrid,
+                  ],
                   const SizedBox(height: 14),
                   TextField(
                     controller: _contentController,
@@ -1083,56 +1199,10 @@ class _PublishSheetState extends State<_PublishSheet> {
                       hintText: '这一刻的想法',
                     ),
                   ),
-                  if (_mediaUrls.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _mediaUrls
-                          .map(
-                            (item) => ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                item,
-                                width: 86,
-                                height: 86,
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setState(() => _mediaUrls.remove(item)),
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      size: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                          .toList(),
-                    ),
-                  ],
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text(
-                        '# 话题',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
+                      const Text('# 话题', style: TextStyle(fontWeight: FontWeight.w700)),
                       const Spacer(),
                       TextButton(onPressed: () {}, child: const Text('全部 >')),
                     ],
@@ -1189,12 +1259,12 @@ class _PublishResult {
   const _PublishResult({
     required this.content,
     required this.type,
-    required this.mediaUrls,
+    required this.mediaFiles,
     required this.tags,
   });
 
   final String content;
   final _PostType type;
-  final List<String> mediaUrls;
+  final List<XFile> mediaFiles;
   final List<String> tags;
 }

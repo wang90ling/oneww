@@ -15,5 +15,8 @@ class NetworkEndpoints {
   //首页获取游戏类型的列表
   static const String getCategoryList = '/homePage/getCategoryList';
 
+  //媒体上传
+  static const String uploadMedia = '/file/upload';
+
   static String articleList(int page) => '/article/list/$page/json';
 }
