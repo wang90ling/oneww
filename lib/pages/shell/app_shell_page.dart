@@ -15,12 +15,12 @@ class _AppShellPageState extends State<AppShellPage> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
-    HomePage(),
-    CirclePage(),
+    HomePage(),//首页
+    CirclePage(),//圈子
     //_SimpleTabPage(title: '圈子', subtitle: '圈子内容正在建设中'),
     _SimpleTabPage(title: '树洞', subtitle: '树洞内容正在建设中', showCenterStyle: true),
     _SimpleTabPage(title: '消息', subtitle: '消息内容正在建设中'),
-    ProfilePage(),
+    ProfilePage(),//我的模块
   ];
 
   @override

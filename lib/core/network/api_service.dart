@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../../models/app_user.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_recommend.dart';
+import '../../models/new_circle_request.dart';
+import '../../models/post_list_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
 import '../../models/wan_article_entity.dart';
@@ -245,5 +247,55 @@ class ApiService {
       return const HomeRecommend(pageNo: "1", pageSize: "20", pages: "0", records: <UserRecord>[], total: "0");
     }
   }
+
+  //加载圈子接口
+  ///getNewPostList
+  Future<PostListResponseEntity> getNewPostList(NewCircleRequest req) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/post/newPostList');
+
+    AppLogger.info('热门圈子: $uri, body: ${req.toJson()}', tag: 'ApiService');
+
+    try {
+      final response = await _client.postJson(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-device': 'APP',
+          if (token != null && token.isNotEmpty) 'authorization': token,
+        },
+        body: req.toJson(),
+      );
+
+      final data = response['data'];
+
+      if (data is Map<String, dynamic>) {
+        final entity = PostListResponseEntity.fromJson(data);
+        entity.data = entity.data ?? <PostListResponseData>[];
+        return entity;
+      }
+
+      if (data is List) {
+        return PostListResponseEntity(
+          data: data
+              .whereType<Map<String, dynamic>>()
+              .map(PostListResponseData.fromJson)
+              .toList(),
+        );
+      }
+
+      return PostListResponseEntity(data: <PostListResponseData>[]);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '加载圈子接口失败: $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
+      return PostListResponseEntity(data: <PostListResponseData>[]);
+    }
+  }
+
 
 }
