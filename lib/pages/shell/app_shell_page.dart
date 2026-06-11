@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../circle/circle_page.dart';
 import '../home/home_page.dart';
 import '../profile/profile_page.dart';
+import '../roomlive/room_live_list_page.dart';
 
 class AppShellPage extends StatefulWidget {
   const AppShellPage({super.key});
@@ -18,7 +19,8 @@ class _AppShellPageState extends State<AppShellPage> {
     HomePage(),//首页
     CirclePage(),//圈子
     //_SimpleTabPage(title: '圈子', subtitle: '圈子内容正在建设中'),
-    _SimpleTabPage(title: '树洞', subtitle: '树洞内容正在建设中', showCenterStyle: true),
+    ///_SimpleTabPage(title: '树洞', subtitle: '树洞内容正在建设中', showCenterStyle: true),
+    RoomLiveListPage(), ///房间直播入口页面
     _SimpleTabPage(title: '消息', subtitle: '消息内容正在建设中'),
     ProfilePage(),//我的模块
   ];
