@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../base/base_page.dart';
+import '../../core/helpers/app_logger.dart';
+import '../../core/network/api_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/empty_state_view.dart';
 import '../../core/widgets/error_state_view.dart';
 import '../../models/article_item.dart';
+import '../../models/play_room_response_entity.dart';
+import '../../models/playroom_by_hot_request.dart';
 import '../../router/app_routes.dart';
 import '../../viewmodels/article_list_view_model.dart';
 import '../../viewmodels/view_state.dart';
@@ -23,12 +27,22 @@ class RoomLiveListPage extends BasePage {
 }
 
 class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
+
+  final ApiService _apiService = ApiService();
+
+  bool _isLoadingRoomLiveList = true;
+  String? _roomLiveListError;
+  List<PlayRoomResponseDataRecords>? _playRoomResponseRecords = <PlayRoomResponseDataRecords>[];
+
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ArticleListViewModel>().loadFirstPage();
     });
+
+    _getRoomHotLiveList();
   }
 
   void _openDetail(ArticleItem item) {
@@ -47,6 +61,36 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
         AppRoutes.articleDetail,
         arguments: item.id,
       );
+    }
+  }
+
+  ///加载最热门直播房间
+  Future<void> _getRoomHotLiveList() async {
+    setState(() {
+      _isLoadingRoomLiveList = true;
+      _roomLiveListError = null;
+    });
+
+    try {
+      final response = await _apiService.getPlayRoomByHot(
+        PlayroomByHotRequest(
+          pageNo: 1,
+          pageSize: 20,
+        ),
+      );
+
+      AppLogger.info('newPostResponse: ${response.data?.records?.length}', tag: 'RoomLiveListPage');
+      if (!mounted) return;
+      setState(() {
+        _playRoomResponseRecords = response.data?.records;
+      });
+    } catch (error) {
+      AppLogger.error('加载最热直播房间失败', error: error, tag: 'RoomLiveListPage');
+      if (!mounted) return;
+      setState(() => _roomLiveListError = '加载最热直播房间失败');
+    } finally {
+      if (!mounted) return;
+      setState(() => _isLoadingRoomLiveList = false);
     }
   }
 

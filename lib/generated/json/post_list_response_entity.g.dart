@@ -1,4 +1,3 @@
-import 'package:oneww/core/helpers/app_logger.dart';
 import 'package:oneww/generated/json/base/json_convert_content.dart';
 import 'package:oneww/models/post_list_response_entity.dart';
 
@@ -25,7 +24,6 @@ PostListResponseEntity $PostListResponseEntityFromJson(
   if (data != null) {
     postListResponseEntity.data = data;
   }
-  AppLogger.info('postListResponseEntity data:'+postListResponseEntity.toString(),tag: "wangling");
   return postListResponseEntity;
 }
 
@@ -35,7 +33,7 @@ Map<String, dynamic> $PostListResponseEntityToJson(
   data['request_id'] = entity.requestId;
   data['code'] = entity.code;
   data['message'] = entity.message;
-  data['data'] = entity.data?.map((v) => v.toJson()).toList();
+  data['data'] = entity.data.map((v) => v.toJson()).toList();
   return data;
 }
 

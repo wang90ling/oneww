@@ -6,6 +6,8 @@ import '../../models/app_user.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_recommend.dart';
 import '../../models/new_circle_request.dart';
+import '../../models/play_room_response_entity.dart';
+import '../../models/playroom_by_hot_request.dart';
 import '../../models/post_list_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
@@ -294,6 +296,54 @@ class ApiService {
         tag: 'ApiService',
       );
       return PostListResponseEntity(data: <PostListResponseData>[]);
+    }
+  }
+
+  ///查看热门房间列表
+  Future<PlayRoomResponseEntity> getPlayRoomByHot(PlayroomByHotRequest req) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/roomInfo/findPageHot');
+
+    AppLogger.info('热门直播房间: $uri, body: ${req.toJson()}', tag: 'ApiService');
+
+    try {
+      final response = await _client.postJson(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-device': 'APP',
+          if (token != null && token.isNotEmpty) 'authorization': token,
+        },
+        body: req.toJson(),
+      );
+
+      final data = response['data'];
+
+      if (data is Map<String, dynamic>) {
+        final entity = PlayRoomResponseEntity.fromJson(data);
+        entity.data = (entity.data ?? <PlayRoomResponseData>[]) as PlayRoomResponseData?;
+        return entity;
+      }
+
+      if (data is List) {
+        return PlayRoomResponseEntity(
+          data: data
+              .whereType<Map<String, dynamic>>()
+              .map(PlayRoomResponseData.fromJson)
+              .toList(),
+        );
+      }
+
+      return PlayRoomResponseEntity(data: <PlayRoomResponseData>[]);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        '热门直播房间接口失败: $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
+      return PlayRoomResponseEntity(data: <PlayRoomResponseData>[]);
     }
   }
 
