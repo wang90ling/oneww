@@ -42,6 +42,7 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
       context.read<ArticleListViewModel>().loadFirstPage();
     });
 
+    //获取热门房间直播列表
     _getRoomHotLiveList();
   }
 
