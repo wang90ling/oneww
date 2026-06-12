@@ -322,20 +322,20 @@ class ApiService {
 
       if (data is Map<String, dynamic>) {
         final entity = PlayRoomResponseEntity.fromJson(data);
-        entity.data = (entity.data ?? <PlayRoomResponseData>[]) as PlayRoomResponseData?;
+        entity.data ??= PlayRoomResponseData();
         return entity;
       }
 
       if (data is List) {
-        return PlayRoomResponseEntity(
-          data: data
+        return PlayRoomResponseEntity(data: [])
+          ..data = PlayRoomResponseData()
+          ..data!.records = data
               .whereType<Map<String, dynamic>>()
-              .map(PlayRoomResponseData.fromJson)
-              .toList(),
-        );
+              .map(PlayRoomResponseDataRecords.fromJson)
+              .toList();
       }
 
-      return PlayRoomResponseEntity(data: <PlayRoomResponseData>[]);
+      return PlayRoomResponseEntity(data: [])..data = PlayRoomResponseData();
     } catch (error, stackTrace) {
       AppLogger.error(
         '热门直播房间接口失败: $uri',
@@ -343,9 +343,8 @@ class ApiService {
         stackTrace: stackTrace,
         tag: 'ApiService',
       );
-      return PlayRoomResponseEntity(data: <PlayRoomResponseData>[]);
+      return PlayRoomResponseEntity(data: [])..data = PlayRoomResponseData();
     }
   }
-
 
 }

@@ -6,12 +6,12 @@ export 'package:oneww/generated/json/play_room_response_entity.g.dart';
 @JsonSerializable()
 class PlayRoomResponseEntity {
 	@JSONField(name: 'request_id')
-	late String? requestId;
-	late int? code;
-	late String? message;
-	late PlayRoomResponseData? data;
+	String? requestId;
+	int? code;
+	String? message;
+	PlayRoomResponseData? data = PlayRoomResponseData();
 
-	PlayRoomResponseEntity({required List<PlayRoomResponseData> data});
+	PlayRoomResponseEntity({required List<dynamic> data});
 
 	factory PlayRoomResponseEntity.fromJson(Map<String, dynamic> json) => $PlayRoomResponseEntityFromJson(json);
 
