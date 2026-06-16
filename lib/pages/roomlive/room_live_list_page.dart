@@ -11,6 +11,7 @@ import '../../repositories/room_live_repository.dart';
 import '../../viewmodels/room_live_list_view_model.dart';
 import '../../viewmodels/view_state.dart';
 
+/// 热门房间页
 class RoomLiveListPage extends BasePage {
   const RoomLiveListPage({super.key});
 
@@ -42,56 +43,55 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
       value: _viewModel,
       child: Consumer<RoomLiveListViewModel>(
         builder: (context, vm, _) {
-          if (vm.status == ViewStatus.loading && vm.items.isEmpty) {
-            return _buildSkeleton();
-          }
-
-          if (vm.status == ViewStatus.error && vm.items.isEmpty) {
-            return ErrorStateView(
-              message: vm.errorMessage ?? '加载失败',
-              onRetry: vm.loadFirstPage,
-            );
-          }
-
-          if (vm.items.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: vm.refresh,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 80),
-                  EmptyStateView(
-                    title: '暂无热门房间',
-                    subtitle: '下拉刷新试试',
-                  ),
-                ],
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF4F0FF), Color(0xFFF7F8FC)],
               ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: vm.refresh,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 150) {
-                  vm.loadMore();
-                }
-                return false;
-              },
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                itemCount: vm.items.length + (vm.hasMore ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  if (index >= vm.items.length) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  return _RoomCard(room: vm.items[index]);
-                },
+            ),
+            child: RefreshIndicator(
+              onRefresh: vm.refresh,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                slivers: [
+                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                  SliverToBoxAdapter(child: _buildHeader(context)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  SliverToBoxAdapter(child: _buildCategoryBar(vm)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  if (vm.status == ViewStatus.loading && vm.items.isEmpty)
+                    _buildSkeletonSliver()
+                  else if (vm.status == ViewStatus.error && vm.items.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: ErrorStateView(
+                        message: vm.errorMessage ?? '加载失败',
+                        onRetry: vm.loadFirstPage,
+                      ),
+                    )
+                  else if (vm.items.isEmpty)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateView(
+                          title: '暂无热门房间',
+                          subtitle: '下拉刷新试试',
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+                        sliver: SliverToBoxAdapter(
+                          child: _RoomGrid(
+                            items: vm.items,
+                            hasMore: vm.hasMore,
+                            loadingMore: vm.status == ViewStatus.loadingMore,
+                            onLoadMore: vm.loadMore,
+                          ),
+                        ),
+                      ),
+                ],
               ),
             ),
           );
@@ -100,22 +100,172 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, __) => const AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppSkeleton(height: 18, width: 200),
-            SizedBox(height: 10),
-            AppSkeleton(height: 14, width: 140),
-            SizedBox(height: 6),
-            AppSkeleton(height: 14, width: 100),
-          ],
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '树洞',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '发现正在热聊的房间',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.search_rounded, color: Color(0xFF1A1A1A)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBar(RoomLiveListViewModel vm) {
+    final categories = ['热门', '小圈', '点唱', '情感', '交友', '电台'];
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          final selected = index == 0;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? const LinearGradient(colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)])
+                  : null,
+              color: selected ? null : Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                categories[index],
+                style: TextStyle(
+                  color: selected ? Colors.white : const Color(0xFF666666),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemCount: categories.length,
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSliver() {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+              (_, __) => const AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: AppSkeleton(),
+                ),
+                SizedBox(height: 10),
+                AppSkeleton(height: 16, width: 120),
+                SizedBox(height: 6),
+                AppSkeleton(height: 12, width: 80),
+              ],
+            ),
+          ),
+          childCount: 6,
         ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.82,
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomGrid extends StatefulWidget {
+  const _RoomGrid({
+    required this.items,
+    required this.hasMore,
+    required this.loadingMore,
+    required this.onLoadMore,
+  });
+
+  final List<PlayRoomResponseDataRecords> items;
+  final bool hasMore;
+  final bool loadingMore;
+  final VoidCallback onLoadMore;
+
+  @override
+  State<_RoomGrid> createState() => _RoomGridState();
+}
+
+class _RoomGridState extends State<_RoomGrid> {
+  @override
+  Widget build(BuildContext context) {
+    final totalCount = widget.items.length + (widget.hasMore ? 1 : 0);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 180) {
+          widget.onLoadMore();
+        }
+        return false;
+      },
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: totalCount,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.82,
+        ),
+        itemBuilder: (context, index) {
+          if (index >= widget.items.length) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return _RoomCard(room: widget.items[index]);
+        },
       ),
     );
   }
@@ -128,102 +278,197 @@ class _RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (room.roomName ?? room.moduleName ?? '未命名房间').trim();
-    final label = (room.mainLabel ?? '').trim();
+    final title = (room.roomName ?? room.moduleName ?? '未命名房间').trim();
+    final subtitle = (room.mainLabel ?? '').trim();
     final online = room.onlineCount ?? 0;
+    final heat = (room.heatValueStr ?? '').trim();
+    final avatar = (room.roomAvatar ?? room.moduleAvatar ?? '').trim();
+    final image = avatar.isNotEmpty ? avatar : 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=900&q=80';
 
     return AppCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if ((room.roomAvatar ?? '').isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            AspectRatio(
+              aspectRatio: 0.82,
               child: Image.network(
-                room.roomAvatar!,
-                width: 60,
-                height: 60,
+                image,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _avatarFallback(60),
-              ),
-            )
-          else
-            _avatarFallback(60),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    if (label.isNotEmpty) _Tag(label),
-                    if (label.isNotEmpty && online > 0) const SizedBox(width: 8),
-                    if (online > 0)
-                      Row(
-                        children: [
-                          Icon(Icons.person, size: 13, color: Colors.grey.shade500),
-                          const SizedBox(width: 2),
-                          Text('$online 在线', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                        ],
-                      ),
-                  ],
-                ),
-                if ((room.heatValueStr ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.local_fire_department, size: 13, color: Colors.orange.shade400),
-                      const SizedBox(width: 2),
-                      Text(room.heatValueStr!, style: TextStyle(fontSize: 12, color: Colors.orange.shade400)),
-                    ],
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFFF1F3F8),
+                  child: const Center(
+                    child: Icon(Icons.broken_image_outlined, size: 34, color: Color(0xFFB0B7C3)),
                   ),
-                ],
-              ],
-            ),
-          ),
-          if (room.openStatus == 1)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.red.shade200),
+                ),
               ),
-              child: Text('直播中', style: TextStyle(fontSize: 11, color: Colors.red.shade600, fontWeight: FontWeight.w600)),
             ),
-        ],
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.08),
+                      Colors.black.withValues(alpha: 0.18),
+                      Colors.black.withValues(alpha: 0.72),
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 10,
+              top: 10,
+              right: 10,
+              child: Row(
+                children: [
+                  _RoomPill(
+                    text: subtitle.isNotEmpty ? subtitle : '热门',
+                    gradient: const LinearGradient(colors: [Color(0xFFFF7BC1), Color(0xFFFF5B7A)]),
+                  ),
+                  const Spacer(),
+                  if (online > 0)
+                    _RoomPill(
+                      text: _formatCount(online),
+                      gradient: const LinearGradient(colors: [Color(0xFF8E7BFF), Color(0xFF5A7BFF)]),
+                    ),
+                ],
+              ),
+            ),
+            if (room.openStatus == 1)
+              Positioned(
+                right: 10,
+                top: 44,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lock_rounded, size: 18, color: Color(0xFF7A5CFF)),
+                ),
+              ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.18,
+                    ),
+                  ),
+                  if (heat.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFFFD36A)),
+                        const SizedBox(width: 3),
+                        Text(
+                          heat,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Positioned(
+              left: 10,
+              bottom: 10,
+              child: _HostAvatar(url: room.roomAvatar ?? room.moduleAvatar ?? ''),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _avatarFallback(double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: const Color(0xFFF0EEFF), borderRadius: BorderRadius.circular(10)),
-      child: const Icon(Icons.music_note, color: Color(0xFF7A5CFF), size: 28),
-    );
+  String _formatCount(int count) {
+    if (count >= 10000) {
+      final value = count / 10000;
+      return '${value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1)}w';
+    }
+    return '$count';
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag(this.label);
+class _RoomPill extends StatelessWidget {
+  const _RoomPill({required this.text, required this.gradient});
 
-  final String label;
+  final String text;
+  final Gradient gradient;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: const Color(0xFFF0EEFF), borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF7A5CFF), fontWeight: FontWeight.w500)),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _HostAvatar extends StatelessWidget {
+  const _HostAvatar({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: Colors.white24,
+            child: const Icon(Icons.person, size: 16, color: Colors.white),
+          ),
+        ),
+      ),
     );
   }
 }
