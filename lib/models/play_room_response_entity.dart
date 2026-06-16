@@ -1,6 +1,8 @@
+import 'dart:convert';
+
 import 'package:oneww/generated/json/base/json_field.dart';
 import 'package:oneww/generated/json/play_room_response_entity.g.dart';
-import 'dart:convert';
+
 export 'package:oneww/generated/json/play_room_response_entity.g.dart';
 
 @JsonSerializable()
@@ -9,184 +11,204 @@ class PlayRoomResponseEntity {
 	String? requestId;
 	int? code;
 	String? message;
-	PlayRoomResponseData? data = PlayRoomResponseData();
+	PlayRoomResponseData? data;
 
-	PlayRoomResponseEntity({required List<dynamic> data});
+	// 兼容生成文件里 PlayRoomResponseEntity(data: []) 的调用方式
+	PlayRoomResponseEntity({dynamic data}) {
+		if (data is PlayRoomResponseData) {
+			this.data = data;
+		}
+	}
 
-	factory PlayRoomResponseEntity.fromJson(Map<String, dynamic> json) => $PlayRoomResponseEntityFromJson(json);
+	factory PlayRoomResponseEntity.fromJson(Map<String, dynamic> json) =>
+			$PlayRoomResponseEntityFromJson(json);
 
 	Map<String, dynamic> toJson() => $PlayRoomResponseEntityToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }
 
 @JsonSerializable()
 class PlayRoomResponseData {
-	late int? pageNo;
-	late int? pageSize;
-	late int? total;
-	late int? pages;
-	late List<PlayRoomResponseDataRecords>? records;
+	int? pageNo;
+	int? pageSize;
+	int? total;
+	int? pages;
+	List<PlayRoomResponseDataRecords> records = <PlayRoomResponseDataRecords>[];
 
 	PlayRoomResponseData();
 
-	factory PlayRoomResponseData.fromJson(Map<String, dynamic> json) => $PlayRoomResponseDataFromJson(json);
+	factory PlayRoomResponseData.fromJson(Map<String, dynamic> json) =>
+			$PlayRoomResponseDataFromJson(json);
 
 	Map<String, dynamic> toJson() => $PlayRoomResponseDataToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }
 
 @JsonSerializable()
 class PlayRoomResponseDataRecords {
-	late int? id;
-	late int? moduleId;
-	late String? moduleName;
-	late String? mainLabel;
-	late String? moduleAvatar;
-	late int? roomNo;
-	late String? roomName;
-	late String? roomAvatar;
-	late int? roomType;
-	late String? roomTypeName;
-	late int? roomStatus;
-	late int? display;
-	late int? openStatus;
-	late String? announcement;
-	late String? welcomeMsg;
-	late int? heatValue;
-	late String? heatValueStr;
-	late int? followStatus;
-	late int? onlineCount;
-	late int? withdrawalSettings;
-	late int? passwordSettings;
-	late int? roomOwner;
-	late int? wallpaperPropId;
-	late String? wallpaperWearTime;
-	late int? wearStatus;
-	late PlayRoomResponseDataRecordsWallpaperPropInfo? wallpaperPropInfo;
-	late int? defaultWallpaperPropId;
-	late PlayRoomResponseDataRecordsDefaultWallpaperPropInfo? defaultWallpaperPropInfo;
-	late int? guildId;
-	late String? userName;
-	late String? userAvatar;
-	late int? otherType;
-	late String? otherBusinessId;
-	late String? otherValue;
-	late String? otherAvatar;
-	late int? kolId;
-	late int? businessRoomType;
-	late List<PlayRoomResponseDataRecordsMicUsers>? micUsers;
-	late String? gloryBorder;
+	int? id;
+	int? moduleId;
+	String? moduleName;
+	String? mainLabel;
+	String? moduleAvatar;
+	int? roomNo;
+	String? roomName;
+	String? roomAvatar;
+	int? roomType;
+	String? roomTypeName;
+	int? roomStatus;
+	int? display;
+	int? openStatus;
+	String? announcement;
+	String? welcomeMsg;
+	int? heatValue;
+	String? heatValueStr;
+	int? followStatus;
+	int? onlineCount;
+	int? withdrawalSettings;
+	int? passwordSettings;
+	int? roomOwner;
+	int? wallpaperPropId;
+	String? wallpaperWearTime;
+	int? wearStatus;
+	PlayRoomResponseDataRecordsWallpaperPropInfo? wallpaperPropInfo;
+	int? defaultWallpaperPropId;
+	PlayRoomResponseDataRecordsDefaultWallpaperPropInfo? defaultWallpaperPropInfo;
+	int? guildId;
+	String? userName;
+	String? userAvatar;
+	int? otherType;
+	String? otherBusinessId;
+	String? otherValue;
+	String? otherAvatar;
+	int? kolId;
+	int? businessRoomType;
+	List<PlayRoomResponseDataRecordsMicUsers> micUsers =
+	<PlayRoomResponseDataRecordsMicUsers>[];
+	String? gloryBorder;
 
 	PlayRoomResponseDataRecords();
 
-	factory PlayRoomResponseDataRecords.fromJson(Map<String, dynamic> json) => $PlayRoomResponseDataRecordsFromJson(json);
+	factory PlayRoomResponseDataRecords.fromJson(Map<String, dynamic> json) {
+		final entity = $PlayRoomResponseDataRecordsFromJson(json);
+		entity.roomName = _sanitizeText(entity.roomName);
+		entity.moduleName = _sanitizeText(entity.moduleName);
+		entity.mainLabel = _sanitizeText(entity.mainLabel);
+		entity.userName = _sanitizeText(entity.userName);
+		entity.otherValue = _sanitizeText(entity.otherValue);
+		entity.announcement = _sanitizeText(entity.announcement);
+		entity.welcomeMsg = _sanitizeText(entity.welcomeMsg);
+		entity.heatValueStr = _sanitizeText(entity.heatValueStr);
+		return entity;
+	}
+
+	static String? _sanitizeText(String? value) {
+		if (value == null) return null;
+		return value.replaceAll('\u0000', '').trim();
+	}
 
 	Map<String, dynamic> toJson() => $PlayRoomResponseDataRecordsToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }
 
 @JsonSerializable()
 class PlayRoomResponseDataRecordsWallpaperPropInfo {
-	late int? userId;
-	late int? propId;
-	late String? propName;
-	late int? propType;
-	late String? propFormat;
-	late String? dynamicEffect;
-	late String? pcDynamicEffect;
-	late String? iosDynamicEffect;
-	late String? vapJson;
-	late String? vapText;
+	int? userId;
+	int? propId;
+	String? propName;
+	int? propType;
+	String? propFormat;
+	String? dynamicEffect;
+	String? pcDynamicEffect;
+	String? iosDynamicEffect;
+	String? vapJson;
+	String? vapText;
 
 	PlayRoomResponseDataRecordsWallpaperPropInfo();
 
-	factory PlayRoomResponseDataRecordsWallpaperPropInfo.fromJson(Map<String, dynamic> json) => $PlayRoomResponseDataRecordsWallpaperPropInfoFromJson(json);
+	factory PlayRoomResponseDataRecordsWallpaperPropInfo.fromJson(
+			Map<String, dynamic> json) =>
+			$PlayRoomResponseDataRecordsWallpaperPropInfoFromJson(json);
 
-	Map<String, dynamic> toJson() => $PlayRoomResponseDataRecordsWallpaperPropInfoToJson(this);
+	Map<String, dynamic> toJson() =>
+			$PlayRoomResponseDataRecordsWallpaperPropInfoToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }
 
 @JsonSerializable()
 class PlayRoomResponseDataRecordsDefaultWallpaperPropInfo {
-	late int? userId;
-	late int? propId;
-	late String? propName;
-	late int? propType;
-	late String? propFormat;
-	late String? dynamicEffect;
-	late String? pcDynamicEffect;
-	late String? iosDynamicEffect;
-	late String? vapJson;
-	late String? vapText;
+	int? userId;
+	int? propId;
+	String? propName;
+	int? propType;
+	String? propFormat;
+	String? dynamicEffect;
+	String? pcDynamicEffect;
+	String? iosDynamicEffect;
+	String? vapJson;
+	String? vapText;
 
 	PlayRoomResponseDataRecordsDefaultWallpaperPropInfo();
 
-	factory PlayRoomResponseDataRecordsDefaultWallpaperPropInfo.fromJson(Map<String, dynamic> json) => $PlayRoomResponseDataRecordsDefaultWallpaperPropInfoFromJson(json);
+	factory PlayRoomResponseDataRecordsDefaultWallpaperPropInfo.fromJson(
+			Map<String, dynamic> json) =>
+			$PlayRoomResponseDataRecordsDefaultWallpaperPropInfoFromJson(json);
 
-	Map<String, dynamic> toJson() => $PlayRoomResponseDataRecordsDefaultWallpaperPropInfoToJson(this);
+	Map<String, dynamic> toJson() =>
+			$PlayRoomResponseDataRecordsDefaultWallpaperPropInfoToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }
 
 @JsonSerializable()
 class PlayRoomResponseDataRecordsMicUsers {
-	late int? id;
-	late String? userNo;
-	late String? luckyNo;
-	late String? sex;
-	late String? name;
-	late String? nickName;
-	late String? avatar;
-	late String? phoneCountryCode;
-	late String? telephone;
-	late String? avatarId;
-	late int? accompanyId;
-	late String? introduced;
-	late int? level;
-	late int? roomLevel;
-	late String? accompanyLevel;
-	late int? childMode;
-	late int? onlineFlag;
-	late String? onlineTime;
-	late String? identityNumber;
-	late int? userType;
-	late String? customIdentityImage;
-	late int? authFlag;
-	late String? registerTime;
-	late String? birthday;
-	late int? enterRoomInvisibleFlag;
-	late String? mainLabelId;
-	late String? mainLabel;
-	late String? moduleAvatar;
-	late int? robotFlag;
+	int? id;
+	String? userNo;
+	String? luckyNo;
+	String? sex;
+	String? name;
+	String? nickName;
+	String? avatar;
+	String? phoneCountryCode;
+	String? telephone;
+	String? avatarId;
+	int? accompanyId;
+	String? introduced;
+	int? level;
+	int? roomLevel;
+	String? accompanyLevel;
+	int? childMode;
+	int? onlineFlag;
+	String? onlineTime;
+	String? identityNumber;
+	int? userType;
+	String? customIdentityImage;
+	int? authFlag;
+	String? registerTime;
+	String? birthday;
+	int? enterRoomInvisibleFlag;
+	String? mainLabelId;
+	String? mainLabel;
+	String? moduleAvatar;
+	int? robotFlag;
 
 	PlayRoomResponseDataRecordsMicUsers();
 
-	factory PlayRoomResponseDataRecordsMicUsers.fromJson(Map<String, dynamic> json) => $PlayRoomResponseDataRecordsMicUsersFromJson(json);
+	factory PlayRoomResponseDataRecordsMicUsers.fromJson(
+			Map<String, dynamic> json) =>
+			$PlayRoomResponseDataRecordsMicUsersFromJson(json);
 
 	Map<String, dynamic> toJson() => $PlayRoomResponseDataRecordsMicUsersToJson(this);
 
 	@override
-	String toString() {
-		return jsonEncode(this);
-	}
+	String toString() => jsonEncode(this);
 }

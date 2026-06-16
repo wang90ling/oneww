@@ -10,9 +10,9 @@ class NetworkClient {
   final http.Client _client;
 
   Future<Map<String, dynamic>> getJson(
-    Uri uri, {
-    Map<String, String>? headers,
-  }) async {
+      Uri uri, {
+        Map<String, String>? headers,
+      }) async {
     try {
       final response = await _client.get(uri, headers: headers);
       return _decodeMapResponse(response);
@@ -28,10 +28,10 @@ class NetworkClient {
   }
 
   Future<Map<String, dynamic>> postJson(
-    Uri uri, {
-    Map<String, String>? headers,
-    Object? body,
-  }) async {
+      Uri uri, {
+        Map<String, String>? headers,
+        Object? body,
+      }) async {
     try {
       final response = await _client.post(
         uri,
@@ -53,9 +53,9 @@ class NetworkClient {
   }
 
   Future<List<dynamic>> getList(
-    Uri uri, {
-    Map<String, String>? headers,
-  }) async {
+      Uri uri, {
+        Map<String, String>? headers,
+      }) async {
     final response = await getJson(uri, headers: headers);
     final data = response['data'];
     if (data is List) {
@@ -66,7 +66,7 @@ class NetworkClient {
 
   Map<String, dynamic> _decodeMapResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final dynamic decoded = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes, allowMalformed: true));
       if (decoded is Map<String, dynamic>) {
         return decoded;
       }
