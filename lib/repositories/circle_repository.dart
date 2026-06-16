@@ -2,6 +2,7 @@ import '../core/network/api_service.dart';
 import '../models/new_circle_request.dart';
 import '../models/post_list_response_entity.dart';
 
+///圈子接口对接
 class CircleRepository {
   CircleRepository({ApiService? apiService}) : _apiService = apiService ?? ApiService();
 

@@ -2,6 +2,7 @@ import '../core/network/api_service.dart';
 import '../models/play_room_response_entity.dart';
 import '../models/playroom_by_hot_request.dart';
 
+///房间语音房接口对接
 class RoomLiveRepository {
   RoomLiveRepository({ApiService? apiService}) : _apiService = apiService ?? ApiService();
 
