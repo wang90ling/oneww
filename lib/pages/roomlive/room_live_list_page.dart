@@ -12,17 +12,14 @@ import '../../viewmodels/room_live_list_view_model.dart';
 import '../../viewmodels/view_state.dart';
 
 /// 热门房间页
-class RoomLiveListPage extends BasePage {
+class RoomLiveListPage extends StatefulWidget {
   const RoomLiveListPage({super.key});
-
-  @override
-  String get pageTitle => '热门房间';
 
   @override
   State<RoomLiveListPage> createState() => _RoomLiveListPageState();
 }
 
-class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
+class _RoomLiveListPageState extends State<RoomLiveListPage> {
   late final RoomLiveListViewModel _viewModel;
 
   @override
@@ -38,7 +35,7 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
   }
 
   @override
-  Widget buildPage(BuildContext context) {
+  Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _viewModel,
       child: Consumer<RoomLiveListViewModel>(
@@ -220,6 +217,7 @@ class _RoomLiveListPageState extends BasePageState<RoomLiveListPage> {
       ),
     );
   }
+
 }
 
 class _RoomGrid extends StatefulWidget {
