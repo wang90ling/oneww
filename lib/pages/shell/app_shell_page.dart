@@ -64,7 +64,7 @@ class _BottomNavBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 68,
+          height: 72,
           child: Row(
             children: [
               _BottomTab(

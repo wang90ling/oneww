@@ -36,6 +36,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 22;
     return ChangeNotifierProvider.value(
       value: _viewModel,
       child: Consumer<RoomLiveListViewModel>(
@@ -53,7 +54,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 slivers: [
-                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                  SliverToBoxAdapter(child: SizedBox(height: MediaQuery.of(context).padding.top + 10)),
                   SliverToBoxAdapter(child: _buildHeader(context)),
                   const SliverToBoxAdapter(child: SizedBox(height: 14)),
                   SliverToBoxAdapter(child: _buildCategoryBar(vm)),
@@ -78,7 +79,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
                         sliver: SliverToBoxAdapter(
                           child: _RoomGrid(
                             items: vm.items,
@@ -108,7 +109,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
               Text(
                 '树洞',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -146,7 +147,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
   Widget _buildCategoryBar(RoomLiveListViewModel vm) {
     final categories = ['热门', '小圈', '点唱', '情感', '交友', '电台'];
     return SizedBox(
-      height: 38,
+      height: 35,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -281,12 +282,33 @@ class _RoomCard extends StatelessWidget {
     final online = room.onlineCount ?? 0;
     final heat = (room.heatValueStr ?? '').trim();
     final avatar = (room.roomAvatar ?? room.moduleAvatar ?? '').trim();
-    final image = avatar.isNotEmpty ? avatar : 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=900&q=80';
+    
+    String image = '';
+    if (_isValidImageUrl(avatar)) {
+      image = avatar;
+    } else if (room.wallpaperPropInfo?.dynamicEffect != null && _isValidImageUrl(room.wallpaperPropInfo!.dynamicEffect!)) {
+      image = room.wallpaperPropInfo!.dynamicEffect!;
+    } else if (room.defaultWallpaperPropInfo?.dynamicEffect != null && _isValidImageUrl(room.defaultWallpaperPropInfo!.dynamicEffect!)) {
+      image = room.defaultWallpaperPropInfo!.dynamicEffect!;
+    }
+    
+    if (image.isEmpty) {
+      image = _getDefaultImage();
+    }
 
-    return AppCard(
-      padding: EdgeInsets.zero,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
             AspectRatio(
@@ -294,12 +316,11 @@ class _RoomCard extends StatelessWidget {
               child: Image.network(
                 image,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFF1F3F8),
-                  child: const Center(
-                    child: Icon(Icons.broken_image_outlined, size: 34, color: Color(0xFFB0B7C3)),
-                  ),
-                ),
+                errorBuilder: (_, __, ___) => _buildDefaultCover(),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return _buildDefaultCover();
+                },
               ),
             ),
             Positioned.fill(
@@ -406,6 +427,47 @@ class _RoomCard extends StatelessWidget {
       return '${value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1)}w';
     }
     return '$count';
+  }
+
+  bool _isValidImageUrl(String url) {
+    if (url.isEmpty) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return false;
+    }
+    if (url.contains('account.xiaomi.com') || 
+        url.contains('passport') || 
+        url.contains('login') ||
+        url.contains('.html') ||
+        url.contains('.php') ||
+        url.contains('.asp')) {
+      return false;
+    }
+    final imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+    return imageExtensions.any((ext) => url.toLowerCase().contains(ext));
+  }
+
+  String _getDefaultImage() {
+    const images = [
+      'https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=900&q=80',
+    ];
+    return images[DateTime.now().millisecondsSinceEpoch % images.length];
+  }
+
+  Widget _buildDefaultCover() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.home_filled, size: 48, color: Colors.white38),
+      ),
+    );
   }
 }
 
