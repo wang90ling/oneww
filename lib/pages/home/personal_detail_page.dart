@@ -1,20 +1,118 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/auth_storage.dart';
+import '../../core/network/network_client.dart';
+import '../../models/accompany_category_detail_entity.dart';
 import '../../models/home_recommend.dart';
+import '../../pages/login/login_page.dart';
+import '../../viewmodels/home_view_model.dart';
 
-class PersonalDetailPage extends StatelessWidget {
+class PersonalDetailPage extends StatefulWidget {
   const PersonalDetailPage({super.key, required this.record});
 
   final UserRecord record;
 
   @override
+  State<PersonalDetailPage> createState() => _PersonalDetailPageState();
+}
+
+class _PersonalDetailPageState extends State<PersonalDetailPage> {
+  late final HomeViewModel _viewModel;
+  late final String _categoryId;
+  late final String _userId;
+
+  bool _loading = true;
+  String? _errorMessage;
+  AccompanyCategoryDetailEntity? _detail;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = HomeViewModel();
+    _categoryId = widget.record.categoryId.toString();
+    _userId = widget.record.userId.toString();
+    _loadDetail();
+  }
+
+  Future<void> _loadDetail() async {
+    try {
+      final detail = await _viewModel.loadAccompanyCategoryDetail(_categoryId, _userId);
+      if (!mounted) return;
+      setState(() {
+        _detail = detail;
+        _loading = false;
+        _errorMessage = null;
+      });
+    } on UnauthorizedException {
+      if (!mounted) return;
+      await _handleUnauthorized();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _handleUnauthorized() async {
+    await AuthStorage.clearSession();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final name = record.nickName.isEmpty ? '匿名陪玩' : record.nickName;
-    final price = record.orderAmount == 0 ? 200 : record.orderAmount;
-    final avatar = record.avatar;
-    final coverImage = record.coverImage.isNotEmpty ? record.coverImage : record.avatar;
+    final detail = _detail?.data;
+    if (_loading) {
+      return const Scaffold(body: SafeArea(child: Center(child: CircularProgressIndicator())));
+    }
+    if (_errorMessage != null || detail == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5FB),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 42, color: Color(0xFFFF5A5F)),
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorMessage ?? '暂无详情数据',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF3D3D3D), height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadDetail,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7A5CFF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    ),
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final labels = _buildLabels(detail);
+    final entryGroups = detail.entryGroupDto;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5FB),
@@ -22,7 +120,14 @@ class PersonalDetailPage extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: _DetailHeader(name: name, avatar: avatar, coverImage: coverImage),
+              child: _DetailHeader(
+                name: detail.nickName,
+                avatar: detail.avatar,
+                coverImage: detail.coverImage,
+                ipText: detail.lastLoginCity.isNotEmpty ? detail.lastLoginCity : '北京',
+                idText: detail.userNo.isNotEmpty ? detail.userNo : 'ID ${widget.record.userId}',
+                labels: labels,
+              ),
             ),
             SliverToBoxAdapter(
               child: Transform.translate(
@@ -50,127 +155,86 @@ class PersonalDetailPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _InfoRow(icon: Icons.verified_rounded, title: '官方审核', subtitle: '官方审核认证'),
-                          const SizedBox(height: 1),
-                          _InfoRow(icon: Icons.emoji_events_rounded, title: '娱乐搭子', subtitle: '娱乐搭子'),
-                          const SizedBox(height: 1),
-                          _InfoRow(icon: Icons.shield_rounded, title: '订单保障', subtitle: '1 1 6 7 7 7 8 123'),
-                          const SizedBox(height: 10),
+                          for (final entryGroup in entryGroups.take(3)) ...[
+                            _InfoRow(
+                              icon: Icons.verified_rounded,
+                              title: entryGroup.typeName.isNotEmpty ? entryGroup.typeName : '官方审核',
+                              subtitle: _entryGroupSubtitle(entryGroup),
+                            ),
+                            const SizedBox(height: 1),
+                          ],
+                          if (entryGroups.isEmpty) ...[
+                            _InfoRow(icon: Icons.verified_rounded, title: '官方审核', subtitle: '官方审核认证'),
+                            const SizedBox(height: 1),
+                            _InfoRow(icon: Icons.emoji_events_rounded, title: '娱乐搭子', subtitle: '娱乐搭子'),
+                            const SizedBox(height: 1),
+                            _InfoRow(icon: Icons.shield_rounded, title: '订单保障', subtitle: '1 1 6 7 7 7 8 123'),
+                            const SizedBox(height: 10),
+                          ],
                           Padding(
-                            padding: const EdgeInsets.only(left:10,bottom: 6),
-                            child: Text('游戏价格',style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: colorScheme.onSurface, fontSize: 16)),
+                            padding: const EdgeInsets.only(left: 10, bottom: 6),
+                            child: Text('游戏价格', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, fontSize: 16)),
                           ),
                           const SizedBox(height: 10),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.only(left:10,bottom: 6),
-                                child: Text('$price', style: const TextStyle(fontSize: 30, height: 1.0, fontWeight: FontWeight.w900, color: Color(0xFFFF5A5F), letterSpacing: -1.2)),
+                                padding: const EdgeInsets.only(left: 10, bottom: 6),
+                                child: Text('${detail.personCategoryDto.minPriceDto.price}', style: const TextStyle(fontSize: 30, height: 1.0, fontWeight: FontWeight.w900, color: Color(0xFFFF5A5F), letterSpacing: -1.2)),
                               ),
                               const SizedBox(width: 8),
                               const Padding(
-                                padding: EdgeInsets.only(left:2,bottom: 6),
+                                padding: EdgeInsets.only(left: 2, bottom: 6),
                                 child: Text('钻/小时', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF3D3D3D))),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
                           Padding(
-                            padding: const EdgeInsets.only(left:10,bottom: 6),
-                            child: Text('游戏能力', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: colorScheme.onSurface, fontSize: 18)),
+                            padding: const EdgeInsets.only(left: 10, bottom: 6),
+                            child: Text('游戏能力', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, fontSize: 18)),
                           ),
-
                           const SizedBox(height: 6),
                           Padding(
-                            padding: const EdgeInsets.only(left:10,bottom: 6),
-                            child: Text(record.categoryName.isEmpty ? '无敌' : record.categoryName, style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant, fontSize: 16, fontWeight: FontWeight.w500)),
+                            padding: const EdgeInsets.only(left: 10, bottom: 6),
+                            child: Text(detail.personCategoryDto.categoryName.isNotEmpty ? detail.personCategoryDto.categoryName : '无敌', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w500)),
                           ),
-
                           const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: AspectRatio(
-                              aspectRatio: 1.8,
-                              child: coverImage.isNotEmpty
-                                  ? Image.network(coverImage, fit: BoxFit.cover)
-                                  : Container(
-                                      decoration: const BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [Color(0xFFEDE7F6), Color(0xFFF7F1FF)],
-                                        ),
-                                      ),
-                                      child: const Center(
-                                        child: Icon(Icons.image_rounded, size: 56, color: Color(0xFFB8A6D9)),
-                                      ),
-                                    ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: AspectRatio(
+                                aspectRatio: 1.8,
+                                child: _buildGalleryImage(detail),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-
-                                  height: 45,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(28),
-                                    border: Border.all(color: const Color(0xFFE8DFFF), width: 1.1),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF7A5CFF).withValues(alpha: 0.06),
-                                        blurRadius: 14,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TextButton(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _ActionButton(
+                                    text: '下单',
+                                    backgroundColor: Colors.white,
+                                    textColor: const Color(0xFF8E7AE5),
+                                    borderColor: const Color(0xFFE8DFFF),
                                     onPressed: () {},
-                                    style: TextButton.styleFrom(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                                      foregroundColor: const Color(0xFF8E7AE5),
-                                    ),
-                                    child: const Text('下单', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Container(
-                                  height: 45,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(28),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: _ActionButton(
+                                    text: '聊天',
                                     gradient: const LinearGradient(colors: [Color(0xFF5DB2FF), Color(0xFFCF4CFF)]),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFB154FF).withValues(alpha: 0.22),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TextButton(
                                     onPressed: () {},
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 20),
-                                        SizedBox(width: 8),
-                                        Text('聊天', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-                                      ],
-                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -184,14 +248,40 @@ class PersonalDetailPage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildGalleryImage(AccompanyCategoryDetailData detail) {
+    final imageUrl = detail.personCategoryDto.fileList.isNotEmpty ? detail.personCategoryDto.fileList.first.fileUrl : detail.coverImage;
+    if (imageUrl.isNotEmpty) {
+      return Image.network(imageUrl, fit: BoxFit.cover);
+    }
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFEDE7F6), Color(0xFFF7F1FF)]),
+      ),
+      child: const Center(child: Icon(Icons.image_rounded, size: 56, color: Color(0xFFB8A6D9))),
+    );
+  }
+
+  List<String> _buildLabels(AccompanyCategoryDetailData detail) {
+    final labelNames = detail.userLabels.map((e) => e.labelName).where((e) => e.isNotEmpty).toList();
+    return labelNames.isEmpty ? const ['娱乐搭子', '认证'] : labelNames.take(2).toList();
+  }
+
+  String _entryGroupSubtitle(AccompanyCategoryDetailDataEntryGroupDto entryGroup) {
+    if (entryGroup.entries.isEmpty) return entryGroup.typeName;
+    return entryGroup.entries.first.content.isNotEmpty ? entryGroup.entries.first.content : entryGroup.entries.first.labelName;
+  }
 }
 
 class _DetailHeader extends StatelessWidget {
-  const _DetailHeader({required this.name, required this.avatar, required this.coverImage});
+  const _DetailHeader({required this.name, required this.avatar, required this.coverImage, required this.ipText, required this.idText, required this.labels});
 
   final String name;
   final String avatar;
   final String coverImage;
+  final String ipText;
+  final String idText;
+  final List<String> labels;
 
   @override
   Widget build(BuildContext context) {
@@ -276,18 +366,18 @@ class _DetailHeader extends StatelessWidget {
                     Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600, height: 1.05)),
                     const SizedBox(height: 6),
                     Row(
-                      children: const [
-                        _PillTag(text: 'IP 北京'),
-                        SizedBox(width: 8),
-                        _PillTag(text: 'ID 1001837'),
+                      children: [
+                        _PillTag(text: 'IP $ipText'),
+                        const SizedBox(width: 8),
+                        _PillTag(text: idText),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
-                      children: const [
-                        _PillTag(text: '娱乐搭子', accent: true),
-                        SizedBox(width: 8),
-                        _PillTag(text: '认证'),
+                      children: [
+                        _PillTag(text: labels.isNotEmpty ? labels.first : '娱乐搭子', accent: true),
+                        const SizedBox(width: 8),
+                        _PillTag(text: labels.length > 1 ? labels[1] : '认证'),
                       ],
                     ),
                   ],
@@ -416,6 +506,45 @@ class _PillTag extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.text, required this.onPressed, this.backgroundColor, this.textColor = Colors.white, this.borderColor, this.gradient});
+
+  final String text;
+  final VoidCallback onPressed;
+  final Color? backgroundColor;
+  final Color textColor;
+  final Color? borderColor;
+  final Gradient? gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    final isChat = text == '聊天';
+    final decoration = BoxDecoration(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(28),
+      border: borderColor == null ? null : Border.all(color: borderColor!, width: 1.1),
+      gradient: gradient,
+      boxShadow: [BoxShadow(color: const Color(0xFF7A5CFF).withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 8))],
+    );
+
+    return Container(
+      height: 45,
+      decoration: decoration,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          foregroundColor: textColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        ),
+        child: isChat
+            ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 20), SizedBox(width: 8), Text('聊天', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white))])
+            : Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
       ),
     );
   }

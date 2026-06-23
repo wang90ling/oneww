@@ -4,15 +4,30 @@ import 'package:http/http.dart' as http;
 
 import '../helpers/app_logger.dart';
 
+class NetworkClientException implements Exception {
+  NetworkClientException(this.message, {this.statusCode, this.uri});
+
+  final String message;
+  final int? statusCode;
+  final Uri? uri;
+
+  @override
+  String toString() => 'NetworkClientException(statusCode: $statusCode, uri: $uri, message: $message)';
+}
+
+class UnauthorizedException extends NetworkClientException {
+  UnauthorizedException({Uri? uri}) : super('Unauthorized', statusCode: 401, uri: uri);
+}
+
 class NetworkClient {
   NetworkClient({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
 
   Future<Map<String, dynamic>> getJson(
-      Uri uri, {
-        Map<String, String>? headers,
-      }) async {
+    Uri uri, {
+    Map<String, String>? headers,
+  }) async {
     try {
       final response = await _client.get(uri, headers: headers);
       return _decodeMapResponse(response);
@@ -28,17 +43,17 @@ class NetworkClient {
   }
 
   Future<Map<String, dynamic>> postJson(
-      Uri uri, {
-        Map<String, String>? headers,
-        Object? body,
-      }) async {
+    Uri uri, {
+    Map<String, String>? headers,
+    Object? body,
+  }) async {
     try {
       final response = await _client.post(
         uri,
         headers: headers,
         body: body == null ? null : jsonEncode(body),
       );
-      AppLogger.info('postJson response:'+response.body,tag: 'wangling');
+      AppLogger.info('postJson response:${response.body}', tag: 'wangling');
 
       return _decodeMapResponse(response);
     } catch (error, stackTrace) {
@@ -53,9 +68,9 @@ class NetworkClient {
   }
 
   Future<List<dynamic>> getList(
-      Uri uri, {
-        Map<String, String>? headers,
-      }) async {
+    Uri uri, {
+    Map<String, String>? headers,
+  }) async {
     final response = await getJson(uri, headers: headers);
     final data = response['data'];
     if (data is List) {
@@ -65,6 +80,10 @@ class NetworkClient {
   }
 
   Map<String, dynamic> _decodeMapResponse(http.Response response) {
+    if (response.statusCode == 401) {
+      throw UnauthorizedException(uri: response.request?.url);
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes, allowMalformed: true));
       if (decoded is Map<String, dynamic>) {
@@ -72,9 +91,11 @@ class NetworkClient {
       }
       return <String, dynamic>{'data': decoded};
     }
-    throw http.ClientException(
+
+    throw NetworkClientException(
       'Request failed with status ${response.statusCode}',
-      response.request?.url,
+      statusCode: response.statusCode,
+      uri: response.request?.url,
     );
   }
 

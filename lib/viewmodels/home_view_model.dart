@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oneww/core/helpers/app_logger.dart';
 
+import '../models/accompany_category_detail_entity.dart';
 import '../models/home_category_item.dart';
 import '../models/home_menu_item.dart';
 import '../repositories/home_repository.dart';
@@ -14,10 +15,12 @@ class HomeViewModel extends ChangeNotifier {
   ViewStatus _status = ViewStatus.initial;
   String? _errorMessage;
   List<HomeMenuItem> _menus = const [];
+  AccompanyCategoryDetailEntity? _accompanyCategoryDetail;
 
   ViewStatus get status => _status;
   String? get errorMessage => _errorMessage;
   List<HomeMenuItem> get menus => _menus;
+  AccompanyCategoryDetailEntity? get accompanyCategoryDetail => _accompanyCategoryDetail;
 
   Future<void> loadMenus() async {
     _status = ViewStatus.loading;
@@ -27,10 +30,9 @@ class HomeViewModel extends ChangeNotifier {
     try {
       await Future<void>.delayed(const Duration(milliseconds: 300));
       _menus = _repository.menuItems;
-      AppLogger.info("_repository:"+_menus.length.toString(),tag: "wangling");
+      AppLogger.info('_repository:${_menus.length}', tag: 'wangling');
       _status = _menus.isEmpty ? ViewStatus.empty : ViewStatus.success;
-      AppLogger.info("_status:"+_status.toString(),tag: "wangling");
-
+      AppLogger.info('_status:$_status', tag: 'wangling');
       notifyListeners();
     } catch (error) {
       _errorMessage = error.toString();
@@ -39,5 +41,22 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<AccompanyCategoryDetailEntity?> loadAccompanyCategoryDetail(String categoryId, String userId) async {
+    _status = ViewStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
 
+    try {
+      final detail = await _repository.getAccompanyCategoryDetail(categoryId, userId);
+      _accompanyCategoryDetail = detail;
+      _status = ViewStatus.success;
+      notifyListeners();
+      return detail;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _status = ViewStatus.error;
+      notifyListeners();
+      rethrow;
+    }
+  }
 }

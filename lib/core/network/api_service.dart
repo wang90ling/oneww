@@ -116,12 +116,7 @@ class ApiService {
   Future<List<HomeCategoryItem>> getCategoryList() async {
     final token = await _resolveToken();
     final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getCategoryList}');
-    final response = await _client.getJson(uri, headers: <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'x-device': 'APP',
-      if (token != null && token.isNotEmpty) 'authorization': token,
-    });
+    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
 
     final data = response['data'];
     if (data is List) {
@@ -134,6 +129,15 @@ class ApiService {
     final token = await AuthStorage.getToken();
     if (token == null || token.isEmpty) return null;
     return token.startsWith('Bearer ') ? token : 'Bearer $token';
+  }
+
+  Map<String, String> _buildAppHeaders(String? token) {
+    return <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'x-device': 'APP',
+      if (token != null && token.isNotEmpty) 'authorization': token,
+    };
   }
 
   ///推荐列表显示
@@ -244,12 +248,7 @@ class ApiService {
   Future<List<HomeCategoryItem>> getAccompanyDetailInfo(String userId) async {
     final token = await _resolveToken();
     final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getDetailInfo}'+userId);
-    final response = await _client.getJson(uri, headers: <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'x-device': 'APP',
-      if (token != null && token.isNotEmpty) 'authorization': token,
-    });
+    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
 
     final data = response['data'];
     AppLogger.info('getAccompanyDetailInfo data:'+data.toString(),tag: 'wangling');
@@ -261,20 +260,23 @@ class ApiService {
 
 
   ///搭子详情接口对接
-  Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId,String userId) async {
+  Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId, String userId) async {
     final token = await _resolveToken();
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getAccompanyCategoryDetail}'+categoryId+"&userId="+userId);
-    final response = await _client.getJson(uri, headers: <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'x-device': 'APP',
-      if (token != null && token.isNotEmpty) 'authorization': token,
-    });
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/accompany/accompanyCategoryDetail').replace(
+      queryParameters: <String, String>{
+        'categoryId': categoryId,
+        'userId': userId,
+      },
+    );
+
+    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
 
     final data = response['data'];
-    AppLogger.info('getAccompanyCategoryDetail data:'+data.toString(),tag: 'wangling');
-
-    return data;
+    AppLogger.info('getAccompanyCategoryDetail data:$data', tag: 'wangling');
+    if (data is Map<String, dynamic>) {
+      return AccompanyCategoryDetailEntity.fromJson(response);
+    }
+    throw const FormatException('Invalid accompany category detail response');
   }
 
 

@@ -64,8 +64,10 @@ class HomeRepository {
 
   ///搭子详情接口对接
   Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId,String userId) async {
-    final response = await _apiService.getAccompanyCategoryDetail(categoryId,userId);
+    final response = await _apiService.getAccompanyCategoryDetail("1984157213324869633","1999365374107365377");
     //return response.data?.records ?? <HomeCategoryItem>[];
+    //https://apitest.dianta.pw/app/accompany/accompanyCategoryDetail?categoryId=1984157213324869633&userId=1999365374107365377
+    ///https://apitest.dianta.pw/app/accompany/accompanyCategoryDetail?categoryId=1984157213324869633&userId=1999365374107365377
     AppLogger.info('getAccompanyCategoryDetail response:'+response.toString(),tag: 'wangling');
     return response;
   }
