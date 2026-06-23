@@ -58,7 +58,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
                   SliverToBoxAdapter(child: _buildHeader(context)),
                   const SliverToBoxAdapter(child: SizedBox(height: 14)),
                   SliverToBoxAdapter(child: _buildCategoryBar(vm)),
-                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  ///const SliverToBoxAdapter(child: SizedBox(height: 2)),
                   if (vm.status == ViewStatus.loading && vm.items.isEmpty)
                     _buildSkeletonSliver()
                   else if (vm.status == ViewStatus.error && vm.items.isEmpty)
@@ -147,7 +147,7 @@ class _RoomLiveListPageState extends State<RoomLiveListPage> {
   Widget _buildCategoryBar(RoomLiveListViewModel vm) {
     final categories = ['热门', '小圈', '点唱', '情感', '交友', '电台'];
     return SizedBox(
-      height: 35,
+      height: 32,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -257,7 +257,7 @@ class _RoomGridState extends State<_RoomGrid> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 0.82,
+          childAspectRatio: 0.9,
         ),
         itemBuilder: (context, index) {
           if (index >= widget.items.length) {
@@ -312,7 +312,7 @@ class _RoomCard extends StatelessWidget {
         child: Stack(
           children: [
             AspectRatio(
-              aspectRatio: 0.82,
+              aspectRatio: 0.9,
               child: Image.network(
                 image,
                 fit: BoxFit.cover,
@@ -350,9 +350,9 @@ class _RoomCard extends StatelessWidget {
                     gradient: const LinearGradient(colors: [Color(0xFFFF7BC1), Color(0xFFFF5B7A)]),
                   ),
                   const Spacer(),
-                  if (online > 0)
+                  ///if (room.onlineCount! > 0)
                     _RoomPill(
-                      text: _formatCount(online),
+                      text: _formatCount(room.heatValue ?? 0),
                       gradient: const LinearGradient(colors: [Color(0xFF8E7BFF), Color(0xFF5A7BFF)]),
                     ),
                 ],
@@ -381,39 +381,17 @@ class _RoomCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       height: 1.18,
                     ),
                   ),
-                  if (heat.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFFFD36A)),
-                        const SizedBox(width: 3),
-                        Text(
-                          heat,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
-            ),
-            Positioned(
-              left: 10,
-              bottom: 10,
-              child: _HostAvatar(url: room.roomAvatar ?? room.moduleAvatar ?? ''),
             ),
           ],
         ),
