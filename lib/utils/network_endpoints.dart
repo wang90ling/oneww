@@ -19,4 +19,9 @@ class NetworkEndpoints {
   static const String uploadMedia = '/file/upload';
 
   static String articleList(int page) => '/article/list/$page/json';
+
+  ///获取搭子详情
+  static const String getDetailInfo = '/accompany/detailInfo?userId=';
+  //陪玩分类详情
+  static const String getAccompanyCategoryDetail = '/accompany/accompanyCategoryDetail?categoryId=';
 }

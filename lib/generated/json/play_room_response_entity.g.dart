@@ -3,7 +3,7 @@ import 'package:oneww/models/play_room_response_entity.dart';
 
 PlayRoomResponseEntity $PlayRoomResponseEntityFromJson(
     Map<String, dynamic> json) {
-  final PlayRoomResponseEntity playRoomResponseEntity = PlayRoomResponseEntity(data: []);
+  final PlayRoomResponseEntity playRoomResponseEntity = PlayRoomResponseEntity();
   final String? requestId = jsonConvert.convert<String>(json['request_id']);
   if (requestId != null) {
     playRoomResponseEntity.requestId = requestId;
@@ -41,7 +41,7 @@ extension PlayRoomResponseEntityExtension on PlayRoomResponseEntity {
     String? message,
     PlayRoomResponseData? data,
   }) {
-    return PlayRoomResponseEntity(data: [])
+    return PlayRoomResponseEntity()
       ..requestId = requestId ?? this.requestId
       ..code = code ?? this.code
       ..message = message ?? this.message
@@ -84,7 +84,7 @@ Map<String, dynamic> $PlayRoomResponseDataToJson(PlayRoomResponseData entity) {
   data['pageSize'] = entity.pageSize;
   data['total'] = entity.total;
   data['pages'] = entity.pages;
-  data['records'] = entity.records?.map((v) => v.toJson()).toList();
+  data['records'] = entity.records.map((v) => v.toJson()).toList();
   return data;
 }
 
@@ -328,7 +328,7 @@ Map<String, dynamic> $PlayRoomResponseDataRecordsToJson(
   data['otherAvatar'] = entity.otherAvatar;
   data['kolId'] = entity.kolId;
   data['businessRoomType'] = entity.businessRoomType;
-  data['micUsers'] = entity.micUsers?.map((v) => v.toJson()).toList();
+  data['micUsers'] = entity.micUsers.map((v) => v.toJson()).toList();
   data['gloryBorder'] = entity.gloryBorder;
   return data;
 }

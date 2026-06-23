@@ -1,3 +1,8 @@
+import 'package:oneww/core/helpers/app_logger.dart';
+
+import '../core/network/api_service.dart';
+import '../models/accompany_category_detail_entity.dart';
+import '../models/home_category_item.dart';
 import '../models/home_menu_item.dart';
 import '../router/app_routes.dart';
 
@@ -42,4 +47,27 @@ class HomeRepository {
       routeName: AppRoutes.login,
     ),
   ];
+
+
+  HomeRepository({ApiService? apiService}) : _apiService = apiService ?? ApiService();
+
+  final ApiService _apiService;
+
+  ///获取搭子详情
+  Future<List<HomeCategoryItem>> getAccompanyDetailInfo(String userId) async {
+    final response = await _apiService.getAccompanyDetailInfo(userId);
+    //return response.data?.records ?? <HomeCategoryItem>[];
+    AppLogger.info('response:'+response.toString());
+    return [];
+  }
+
+
+  ///搭子详情接口对接
+  Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId,String userId) async {
+    final response = await _apiService.getAccompanyCategoryDetail(categoryId,userId);
+    //return response.data?.records ?? <HomeCategoryItem>[];
+    AppLogger.info('getAccompanyCategoryDetail response:'+response.toString(),tag: 'wangling');
+    return response;
+  }
+
 }

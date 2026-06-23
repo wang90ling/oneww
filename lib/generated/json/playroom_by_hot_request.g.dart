@@ -26,6 +26,8 @@ extension PlayroomByHotRequestExtension on PlayroomByHotRequest {
     int? pageNo,
     int? pageSize,
   }) {
-    return PlayroomByHotRequest(pageNo: pageNo ?? this.pageNo, pageSize: pageSize ?? this.pageSize);
+    return PlayroomByHotRequest()
+      ..pageNo = pageNo ?? this.pageNo
+      ..pageSize = pageSize ?? this.pageSize;
   }
 }
