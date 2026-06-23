@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:oneww/core/helpers/app_logger.dart';
 
+import '../../core/helpers/app_logger.dart';
 import '../../core/network/api_service.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_recommend.dart';
 import '../../models/recommend_request.dart';
+import 'personal_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -210,7 +211,17 @@ class _HomePageState extends State<HomePage> {
                     final record = _recommendRecords[index % _recommendRecords.length];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _TalentCard(record: record, highlight: selectedCategory?.id == 0),
+                      child: _TalentCard(
+                        record: record,
+                        highlight: selectedCategory?.id == 0,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PersonalDetailPage(record: record),
+                            ),
+                          );
+                        },
+                      ),
                     );
                   },
                   childCount: _isLoadingRecommendList ? 3 : (_recommendListError != null ? 1 : (_recommendRecords.isEmpty ? 1 : _recommendRecords.length)),
@@ -352,8 +363,8 @@ class _FilterTag extends StatelessWidget {
 }
 
 class _TalentCard extends StatelessWidget {
-  const _TalentCard({required this.record, required this.highlight});
-  final UserRecord record; final bool highlight;
+  const _TalentCard({required this.record, required this.highlight, this.onTap});
+  final UserRecord record; final bool highlight; final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -361,50 +372,57 @@ class _TalentCard extends StatelessWidget {
     final name = record.nickName.isEmpty ? '匿名陪玩' : record.nickName;
     final categoryName = record.categoryName.isEmpty ? '推荐' : record.categoryName;
     final avatar = record.avatar;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: highlight ? const Color(0xFFE9DBFF) : colorScheme.outlineVariant.withValues(alpha: 0.45), width: highlight ? 1.2 : 1),
-        boxShadow: highlight ? [BoxShadow(color: const Color(0xFF7A5CFF).withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 10))] : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: highlight ? const Color(0xFFE9DBFF) : colorScheme.outlineVariant.withValues(alpha: 0.45), width: highlight ? 1.2 : 1),
+            boxShadow: highlight ? [BoxShadow(color: const Color(0xFF7A5CFF).withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 10))] : null,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: highlight ? const Color(0xFFF2E9FF) : const Color(0xFFF0F0F0),
-                backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                child: avatar.isEmpty ? Icon(highlight ? Icons.auto_awesome_rounded : Icons.person_rounded, size: 28, color: highlight ? const Color(0xFF7A5CFF) : colorScheme.onSurfaceVariant) : null,
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: highlight ? const Color(0xFFF2E9FF) : const Color(0xFFF0F0F0),
+                    backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                    child: avatar.isEmpty ? Icon(highlight ? Icons.auto_awesome_rounded : Icons.person_rounded, size: 28, color: highlight ? const Color(0xFF7A5CFF) : colorScheme.onSurfaceVariant) : null,
+                  ),
+                  Positioned(right: 0, bottom: 2, child: Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: highlight ? const Color(0xFFFFB84D) : const Color(0xFF35D07F), border: const Border.fromBorderSide(BorderSide(color: Colors.white, width: 2)))),),
+                ],
               ),
-              Positioned(right: 0, bottom: 2, child: Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: highlight ? const Color(0xFFFFB84D) : const Color(0xFF35D07F), border: const Border.fromBorderSide(BorderSide(color: Colors.white, width: 2)))),),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [Expanded(child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: colorScheme.onSurface))), _LevelBadge(level: record.level == 0 ? (highlight ? 20 : 13) : record.level, highlight: highlight)]),
+                    const SizedBox(height: 6),
+                    Text('$categoryName ｜ 大神 ｜ 在线接单', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      _MiniTag(label: highlight ? '推荐' : categoryName, highlighted: highlight),
+                      _MiniTag(label: '响应快', highlighted: highlight),
+                      if (highlight) const _MiniTag(label: '精选'),
+                    ]),
+                    const SizedBox(height: 10),
+                    Row(children: [Icon(Icons.play_circle_fill_rounded, color: const Color(0xFFB06BFF).withValues(alpha: 0.9), size: 18), const SizedBox(width: 4), Text('${record.accompanyLevel ?? 8}', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600)), const SizedBox(width: 12), Icon(Icons.favorite_rounded, color: Colors.pink.shade300, size: 18), const SizedBox(width: 4), Text('${record.scoreAvg == 0 ? 95 : record.scoreAvg}%', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600))]),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('$price', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF8F7BFF))), const SizedBox(height: 2), const Text('钻/小时', style: TextStyle(fontSize: 12, color: Colors.grey))]),
             ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [Expanded(child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: colorScheme.onSurface))), _LevelBadge(level: record.level == 0 ? (highlight ? 20 : 13) : record.level, highlight: highlight)]),
-                const SizedBox(height: 6),
-                Text('$categoryName ｜ 大神 ｜ 在线接单', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  _MiniTag(label: highlight ? '推荐' : categoryName, highlighted: highlight),
-                  _MiniTag(label: '响应快', highlighted: highlight),
-                  if (highlight) const _MiniTag(label: '精选'),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [Icon(Icons.play_circle_fill_rounded, color: const Color(0xFFB06BFF).withValues(alpha: 0.9), size: 18), const SizedBox(width: 4), Text('${record.accompanyLevel ?? 8}''', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600)), const SizedBox(width: 12), Icon(Icons.favorite_rounded, color: Colors.pink.shade300, size: 18), const SizedBox(width: 4), Text('${record.scoreAvg == 0 ? 95 : record.scoreAvg}%', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600))]),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text('$price', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF8F7BFF))), const SizedBox(height: 2), const Text('钻/小时', style: TextStyle(fontSize: 12, color: Colors.grey))]),
-        ],
+        ),
       ),
     );
   }
