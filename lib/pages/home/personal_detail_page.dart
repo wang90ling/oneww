@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
 import '../../core/network/network_client.dart';
 import '../../models/accompany_category_detail_entity.dart';
@@ -31,12 +32,32 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
     _viewModel = HomeViewModel();
     _categoryId = widget.record.categoryId.toString();
     _userId = widget.record.userId.toString();
-    _loadDetail();
+    _checkAuthAndLoadDetail();
+  }
+
+  Future<void> _checkAuthAndLoadDetail() async {
+    // 先检查是否已登录
+    final hasToken = await AuthStorage.hasToken();
+    AppLogger.info('Token检查: ${hasToken ? "已登录" : "未登录"}', tag: 'wangling');
+    
+    if (!hasToken) {
+      // 未登录，跳转到登录页
+      AppLogger.info('未登录，跳转到登录页', tag: 'wangling');
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+      return;
+    }
+    
+    // 已登录，加载详情
+    await _loadDetail();
   }
 
   Future<void> _loadDetail() async {
     try {
-      final detail = await _viewModel.loadAccompanyCategoryDetail(_categoryId, _userId);
+      AppLogger.info('正在加载详情: categoryId=$_categoryId, userId=$_userId', tag: 'wangling');
+      final detail = await _viewModel.loadAccompanyCategoryDetail("1984157213324869633","1999365374107365377");//_categoryId, _userId);
       if (!mounted) return;
       setState(() {
         _detail = detail;
@@ -45,9 +66,11 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
       });
     } on UnauthorizedException {
       if (!mounted) return;
+      AppLogger.info('收到401未授权错误，将跳转登录页', tag: 'wangling');
       await _handleUnauthorized();
     } catch (error) {
       if (!mounted) return;
+      AppLogger.error('加载详情失败', error: error, tag: 'wangling');
       setState(() {
         _errorMessage = error.toString();
         _loading = false;

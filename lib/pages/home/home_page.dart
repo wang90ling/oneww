@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../core/helpers/app_logger.dart';
+import '../../core/helpers/auth_storage.dart';
 import '../../core/network/api_service.dart';
+import '../../core/network/network_client.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_recommend.dart';
 import '../../models/recommend_request.dart';
+import '../login/login_page.dart';
 import 'personal_detail_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -29,6 +32,25 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _checkAuthAndLoadData();
+  }
+
+  Future<void> _checkAuthAndLoadData() async {
+    // 先检查是否已登录
+    final hasToken = await AuthStorage.hasToken();
+    AppLogger.info('HomePage Token检查: ${hasToken ? "已登录" : "未登录"}', tag: 'wangling');
+    
+    if (!hasToken) {
+      // 未登录，跳转到登录页
+      AppLogger.info('HomePage 未登录，跳转到登录页', tag: 'wangling');
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+      return;
+    }
+    
+    // 已登录，加载数据
     _loadCategories();
     _getRecommendList();
   }
@@ -61,6 +83,9 @@ class _HomePageState extends State<HomePage> {
         _categories = mergedCategories;
         _selectedCategoryIndex = mergedCategories.isEmpty ? 0 : _selectedCategoryIndex.clamp(0, mergedCategories.length - 1);
       });
+    } on UnauthorizedException {
+      if (!mounted) return;
+      await _handleUnauthorized();
     } catch (_) {
       if (!mounted) return;
       setState(() => _categoryError = '加载游戏分类失败');
@@ -86,10 +111,20 @@ class _HomePageState extends State<HomePage> {
       );
 
       AppLogger.info('homeRecommend: ${homeRecommend.records.length}', tag: 'wangling');
+      
+      // 调试：查看第一条记录的详细信息
+      if (homeRecommend.records.isNotEmpty) {
+        final firstRecord = homeRecommend.records.first;
+        AppLogger.info('第一条记录: categoryId=${firstRecord.categoryId}, userId=${firstRecord.userId}, nickName=${firstRecord.nickName}', tag: 'wangling');
+      }
+      
       if (!mounted) return;
       setState(() {
         _recommendRecords = homeRecommend.records;
       });
+    } on UnauthorizedException {
+      if (!mounted) return;
+      await _handleUnauthorized();
     } catch (error) {
       if (!mounted) return;
       setState(() => _recommendListError = '加载推荐列表失败');
@@ -97,6 +132,15 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() => _isLoadingRecommendList = false);
     }
+  }
+
+  Future<void> _handleUnauthorized() async {
+    await AuthStorage.clearSession();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
   }
 
   Future<void> _onCategoryTap(int index) async {

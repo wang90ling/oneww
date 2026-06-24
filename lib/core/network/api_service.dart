@@ -128,7 +128,7 @@ class ApiService {
   Future<String?> _resolveToken() async {
     final token = await AuthStorage.getToken();
     if (token == null || token.isEmpty) return null;
-    return token.startsWith('Bearer ') ? token : 'Bearer $token';
+    return token.startsWith('Bearer ') ? token : '$token';
   }
 
   Map<String, String> _buildAppHeaders(String? token) {
@@ -156,6 +156,15 @@ class ApiService {
     );
 
     final data = response['data'];
+    // 调试：查看第一条记录的原始数据
+    if (data is Map<String, dynamic>) {
+      final records = data['records'];
+      if (records is List && records.isNotEmpty) {
+        final firstRecord = records.first;
+        AppLogger.info('推荐列表第一条原始数据: $firstRecord', tag: 'wangling');
+      }
+    }
+    
     if (data is Map<String, dynamic>) return HomeRecommend.fromJson(data);
     return const HomeRecommend(pageNo: '1', pageSize: '20', pages: '0', records: <UserRecord>[], total: '0');
   }
@@ -262,6 +271,8 @@ class ApiService {
   ///搭子详情接口对接
   Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId, String userId) async {
     final token = await _resolveToken();
+    AppLogger.info('getAccompanyCategoryDetail - Token检查: ${token ?? "null"}', tag: 'wangling');
+    
     final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/accompany/accompanyCategoryDetail').replace(
       queryParameters: <String, String>{
         'categoryId': categoryId,
@@ -269,6 +280,7 @@ class ApiService {
       },
     );
 
+    AppLogger.info('getAccompanyCategoryDetail - 请求Headers: ${_buildAppHeaders(token)}', tag: 'wangling');
     final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
 
     final data = response['data'];

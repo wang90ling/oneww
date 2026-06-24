@@ -19,7 +19,11 @@ class AccompanyCategoryDetailEntity {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -60,7 +64,11 @@ class AccompanyCategoryDetailData {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -78,7 +86,11 @@ class AccompanyCategoryDetailDataUserLabels {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -104,7 +116,11 @@ class AccompanyCategoryDetailDataUserPropDetailDto {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -131,7 +147,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoChatBubble {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -158,7 +178,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoAvatarFrame {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -185,7 +209,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoLevelMedal {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -212,7 +240,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoEntranceEffect {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -239,7 +271,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoCustomNickname {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -266,7 +302,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoHomepageEffect {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -293,7 +333,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoNameplate {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -320,7 +364,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoMount {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -347,7 +395,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoColorfulText {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -374,7 +426,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoRoomWallpaper {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -401,7 +457,11 @@ class AccompanyCategoryDetailDataUserPropDetailDtoNobleCard {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -425,7 +485,11 @@ class AccompanyCategoryDetailDataPersonCategoryDto {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -446,7 +510,11 @@ class AccompanyCategoryDetailDataPersonCategoryDtoFileList {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -472,7 +540,11 @@ class AccompanyCategoryDetailDataPersonCategoryDtoPriceList {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -498,7 +570,11 @@ class AccompanyCategoryDetailDataPersonCategoryDtoMinPriceDto {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -516,7 +592,11 @@ class AccompanyCategoryDetailDataEntryGroupDto {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -540,7 +620,11 @@ class AccompanyCategoryDetailDataEntryGroupDtoEntries {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -559,7 +643,11 @@ class AccompanyCategoryDetailDataAbilityLabelList {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }
 
@@ -577,6 +665,10 @@ class AccompanyCategoryDetailDataAbilityLabelListItems {
 
 	@override
 	String toString() {
-		return jsonEncode(this);
+		try {
+			return jsonEncode(toJson());
+		} catch (e) {
+			return runtimeType.toString();
+		}
 	}
 }

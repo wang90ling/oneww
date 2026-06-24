@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oneww/core/helpers/app_logger.dart';
+import 'package:oneww/core/network/network_client.dart';
 
 import '../models/accompany_category_detail_entity.dart';
-import '../models/home_category_item.dart';
 import '../models/home_menu_item.dart';
 import '../repositories/home_repository.dart';
 import 'view_state.dart';
@@ -52,6 +52,8 @@ class HomeViewModel extends ChangeNotifier {
       _status = ViewStatus.success;
       notifyListeners();
       return detail;
+    } on UnauthorizedException {
+      rethrow;
     } catch (error) {
       _errorMessage = error.toString();
       _status = ViewStatus.error;
