@@ -9,6 +9,7 @@ import '../../models/home_category_item.dart';
 import '../../models/home_new_recommend_entity.dart';
 import '../../models/recommend_request.dart';
 import '../login/login_page.dart';
+import '../roomlive/dispatching_center_list_page.dart';
 import 'personal_detail_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -180,6 +181,12 @@ class _HomePageState extends State<HomePage> {
                     _CircleActionButton(icon: Icons.search_rounded, onTap: () {}),
                     const SizedBox(width: 10),
                     _CircleActionButton(icon: Icons.notifications_none_rounded, onTap: () {}),
+                    const SizedBox(width: 10),
+                    _CircleActionButton(icon: Icons.send_rounded, onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const DispatchingCenterListPage()),
+                      );
+                    }),
                   ],
                 ),
               ),
