@@ -149,7 +149,7 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
               child: _DetailHeader(
                 name: detail.nickName,
                 avatar: detail.avatar,
-                coverImage: detail.coverImage,
+                coverImage: detail.avatar,
                 ipText: detail.lastLoginCity.isNotEmpty ? detail.lastLoginCity : '北京',
                 idText: detail.userNo.isNotEmpty ? detail.userNo : 'ID ${widget.record.userId}',
                 labels: labels,
