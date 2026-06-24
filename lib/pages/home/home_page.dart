@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
 import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/network_client.dart';
 import '../../models/home_category_item.dart';
-import '../../models/home_recommend.dart';
+import '../../models/home_new_recommend_entity.dart';
 import '../../models/recommend_request.dart';
 import '../login/login_page.dart';
 import 'personal_detail_page.dart';
@@ -27,7 +28,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _isLoadingRecommendList = true;
   String? _recommendListError;
-  List<UserRecord> _recommendRecords = const [];
+  List<HomeNewRecommendDataRecords> _recommendRecords = const [];
 
   @override
   void initState() {
@@ -96,6 +97,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _getRecommendList({String? categoryId}) async {
+    final effectiveCategoryId = categoryId ?? (_categories.isNotEmpty ? _categories[_selectedCategoryIndex].id.toString() : '');
     setState(() {
       _isLoadingRecommendList = true;
       _recommendListError = null;
@@ -106,13 +108,10 @@ class _HomePageState extends State<HomePage> {
         RecommendRequest(
           pageNo: 1,
           pageSize: 20,
-          categoryId: categoryId ?? '',
+          categoryId: effectiveCategoryId,
         ),
       );
 
-      AppLogger.info('homeRecommend: ${homeRecommend.records.length}', tag: 'wangling');
-      
-      // 调试：查看第一条记录的详细信息
       if (homeRecommend.records.isNotEmpty) {
         final firstRecord = homeRecommend.records.first;
         AppLogger.info('第一条记录: categoryId=${firstRecord.categoryId}, userId=${firstRecord.userId}, nickName=${firstRecord.nickName}', tag: 'wangling');
@@ -157,6 +156,7 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedCategory = _categories.isNotEmpty && _selectedCategoryIndex < _categories.length ? _categories[_selectedCategoryIndex] : null;
+    final selectedCategoryId = selectedCategory?.id == 0 ? '' : selectedCategory?.id.toString() ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage> {
                     if (_recommendListError != null) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _ErrorCard(message: _recommendListError!, onRetry: () => _getRecommendList(categoryId: selectedCategory?.id.toString())),
+                        child: _ErrorCard(message: _recommendListError!, onRetry: () => _getRecommendList(categoryId: selectedCategoryId)),
                       );
                     }
                     if (_recommendRecords.isEmpty) {
@@ -253,15 +253,22 @@ class _HomePageState extends State<HomePage> {
                       );
                     }
                     final record = _recommendRecords[index % _recommendRecords.length];
+                    final detailCategoryId = record.categoryId.toString().isNotEmpty ? record.categoryId.toString() : selectedCategoryId;
+                    AppLogger.info('record.categoryId=${record.categoryId}, resolvedDetailCategoryId=$detailCategoryId', tag: 'wangling');
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _TalentCard(
                         record: record,
                         highlight: selectedCategory?.id == 0,
                         onTap: () {
+                          AppLogger.info('wangling record:${record.categoryId}', tag: 'wangling');
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => PersonalDetailPage(record: record),
+                              builder: (_) => PersonalDetailPage(
+                                record: record,
+                                categoryId: record.categoryList[0].categoryId.toString(),
+                              ),
                             ),
                           );
                         },
@@ -408,13 +415,15 @@ class _FilterTag extends StatelessWidget {
 
 class _TalentCard extends StatelessWidget {
   const _TalentCard({required this.record, required this.highlight, this.onTap});
-  final UserRecord record; final bool highlight; final VoidCallback? onTap;
+  final HomeNewRecommendDataRecords record; final bool highlight; final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final price = (record.orderAmount == 0 ? 600 : record.orderAmount);
     final name = record.nickName.isEmpty ? '匿名陪玩' : record.nickName;
-    final categoryName = record.categoryName.isEmpty ? '推荐' : record.categoryName;
+    final categoryName = record.categoryList.isNotEmpty
+        ? record.categoryList.first.categoryName
+        : '推荐';
     final avatar = record.avatar;
     return Material(
       color: Colors.transparent,

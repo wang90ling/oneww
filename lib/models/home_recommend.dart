@@ -72,4 +72,11 @@ class UserRecord {
       onlineFlag: (json['onlineFlag'] as num?)?.toInt() ?? 0,
     );
   }
+
+  @override
+  String toString() {
+    // TODO: implement toString
+    //return super.toString();
+    return 'UserRecord(categoryId: $categoryId, userId: $userId)';
+  }
 }

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:oneww/models/accompany_category_detail_entity.dart';
 import 'package:oneww/models/article_item_entity.dart';
+import 'package:oneww/models/home_new_recommend_entity.dart';
 import 'package:oneww/models/play_room_response_entity.dart';
 import 'package:oneww/models/playroom_by_hot_request.dart';
 import 'package:oneww/models/post_list_response_entity.dart';
@@ -311,6 +312,202 @@ class JsonConvert {
     if (<ArticleItemDataDatas>[] is M) {
       return data.map<ArticleItemDataDatas>((Map<String, dynamic> e) =>
           ArticleItemDataDatas.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendEntity>[] is M) {
+      return data.map<HomeNewRecommendEntity>((Map<String, dynamic> e) =>
+          HomeNewRecommendEntity.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendData>[] is M) {
+      return data.map<HomeNewRecommendData>((Map<String, dynamic> e) =>
+          HomeNewRecommendData.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecords>[] is M) {
+      return data.map<HomeNewRecommendDataRecords>((Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecords.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsRoomLevelConfigDto>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsRoomLevelConfigDto.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsNobleLevelDto>[] is M) {
+      return data.map<HomeNewRecommendDataRecordsNobleLevelDto>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsNobleLevelDto.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsNobleLevelDtoUserCurrent>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsNobleLevelDtoUserCurrent>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsNobleLevelDtoUserCurrent.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsNobleLevelDtoLevelBase>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsNobleLevelDtoLevelBase>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsNobleLevelDtoLevelBase.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsNobleLevelDtoPurchaseRecord>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsNobleLevelDtoPurchaseRecord>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsNobleLevelDtoPurchaseRecord.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsNobleLevelDtoPrivileges>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsNobleLevelDtoPrivileges>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsNobleLevelDtoPrivileges.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryList>[] is M) {
+      return data.map<HomeNewRecommendDataRecordsCategoryList>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryList.fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListFileList>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsCategoryListFileList>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListFileList.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListFieldList>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsCategoryListFieldList>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListFieldList.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp1>[
+    ] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp1>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp1
+              .fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp2>[
+    ] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp2>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp2
+              .fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp3>[
+    ] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp3>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp3
+              .fromJson(e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListPriceList>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsCategoryListPriceList>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListPriceList.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsCategoryListRoomLevelConfigDto>[] is M) {
+      return data
+          .map<
+          HomeNewRecommendDataRecordsCategoryListRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsCategoryListRoomLevelConfigDto.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDto>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDto>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDto.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoChatBubble>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoChatBubble>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoChatBubble.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoAvatarFrame>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoAvatarFrame>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoAvatarFrame.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoLevelMedal>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoLevelMedal>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoLevelMedal.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoEntranceEffect>[] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsUserPropDetailDtoEntranceEffect>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoEntranceEffect.fromJson(
+              e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoCustomNickname>[] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsUserPropDetailDtoCustomNickname>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoCustomNickname.fromJson(
+              e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoHomepageEffect>[] is M) {
+      return data.map<
+          HomeNewRecommendDataRecordsUserPropDetailDtoHomepageEffect>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoHomepageEffect.fromJson(
+              e)).toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoNameplate>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoNameplate>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoNameplate.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoMount>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoMount>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoMount.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoColorfulText>[] is M) {
+      return data
+          .map<
+          HomeNewRecommendDataRecordsUserPropDetailDtoColorfulText>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoColorfulText.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoRoomWallpaper>[] is M) {
+      return data
+          .map<
+          HomeNewRecommendDataRecordsUserPropDetailDtoRoomWallpaper>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoRoomWallpaper.fromJson(e))
+          .toList() as M;
+    }
+    if (<HomeNewRecommendDataRecordsUserPropDetailDtoNobleCard>[] is M) {
+      return data
+          .map<HomeNewRecommendDataRecordsUserPropDetailDtoNobleCard>((
+          Map<String, dynamic> e) =>
+          HomeNewRecommendDataRecordsUserPropDetailDtoNobleCard.fromJson(e))
+          .toList() as M;
     }
     if (<PlayRoomResponseEntity>[] is M) {
       return data.map<PlayRoomResponseEntity>((Map<String, dynamic> e) =>
@@ -672,6 +869,79 @@ class JsonConvertClassCollection {
     (ArticleItemEntity).toString(): ArticleItemEntity.fromJson,
     (ArticleItemData).toString(): ArticleItemData.fromJson,
     (ArticleItemDataDatas).toString(): ArticleItemDataDatas.fromJson,
+    (HomeNewRecommendEntity).toString(): HomeNewRecommendEntity.fromJson,
+    (HomeNewRecommendData).toString(): HomeNewRecommendData.fromJson,
+    (HomeNewRecommendDataRecords).toString(): HomeNewRecommendDataRecords
+        .fromJson,
+    (HomeNewRecommendDataRecordsRoomLevelConfigDto)
+        .toString(): HomeNewRecommendDataRecordsRoomLevelConfigDto.fromJson,
+    (HomeNewRecommendDataRecordsNobleLevelDto)
+        .toString(): HomeNewRecommendDataRecordsNobleLevelDto.fromJson,
+    (HomeNewRecommendDataRecordsNobleLevelDtoUserCurrent)
+        .toString(): HomeNewRecommendDataRecordsNobleLevelDtoUserCurrent
+        .fromJson,
+    (HomeNewRecommendDataRecordsNobleLevelDtoLevelBase)
+        .toString(): HomeNewRecommendDataRecordsNobleLevelDtoLevelBase.fromJson,
+    (HomeNewRecommendDataRecordsNobleLevelDtoPurchaseRecord)
+        .toString(): HomeNewRecommendDataRecordsNobleLevelDtoPurchaseRecord
+        .fromJson,
+    (HomeNewRecommendDataRecordsNobleLevelDtoPrivileges)
+        .toString(): HomeNewRecommendDataRecordsNobleLevelDtoPrivileges
+        .fromJson,
+    (HomeNewRecommendDataRecordsCategoryList)
+        .toString(): HomeNewRecommendDataRecordsCategoryList.fromJson,
+    (HomeNewRecommendDataRecordsCategoryListFileList)
+        .toString(): HomeNewRecommendDataRecordsCategoryListFileList.fromJson,
+    (HomeNewRecommendDataRecordsCategoryListFieldList)
+        .toString(): HomeNewRecommendDataRecordsCategoryListFieldList.fromJson,
+    (HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp1)
+        .toString(): HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp1
+        .fromJson,
+    (HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp2)
+        .toString(): HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp2
+        .fromJson,
+    (HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp3)
+        .toString(): HomeNewRecommendDataRecordsCategoryListFieldListAdditionalProp3
+        .fromJson,
+    (HomeNewRecommendDataRecordsCategoryListPriceList)
+        .toString(): HomeNewRecommendDataRecordsCategoryListPriceList.fromJson,
+    (HomeNewRecommendDataRecordsCategoryListRoomLevelConfigDto)
+        .toString(): HomeNewRecommendDataRecordsCategoryListRoomLevelConfigDto
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDto)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDto.fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoChatBubble)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoChatBubble
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoAvatarFrame)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoAvatarFrame
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoLevelMedal)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoLevelMedal
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoEntranceEffect)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoEntranceEffect
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoCustomNickname)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoCustomNickname
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoHomepageEffect)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoHomepageEffect
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoNameplate)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoNameplate
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoMount)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoMount.fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoColorfulText)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoColorfulText
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoRoomWallpaper)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoRoomWallpaper
+        .fromJson,
+    (HomeNewRecommendDataRecordsUserPropDetailDtoNobleCard)
+        .toString(): HomeNewRecommendDataRecordsUserPropDetailDtoNobleCard
+        .fromJson,
     (PlayRoomResponseEntity).toString(): PlayRoomResponseEntity.fromJson,
     (PlayRoomResponseData).toString(): PlayRoomResponseData.fromJson,
     (PlayRoomResponseDataRecords).toString(): PlayRoomResponseDataRecords

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../models/accompany_category_detail_entity.dart';
 import '../../models/app_user.dart';
 import '../../models/home_category_item.dart';
+import '../../models/home_new_recommend_entity.dart';
 import '../../models/home_recommend.dart';
 import '../../models/new_circle_request.dart';
 import '../../models/play_room_response_entity.dart';
@@ -141,7 +142,7 @@ class ApiService {
   }
 
   ///推荐列表显示
-  Future<HomeRecommend> getRecommendList(RecommendRequest req) async {
+  Future<HomeNewRecommendEntity> getRecommendList(RecommendRequest req) async {
     final token = await _resolveToken();
     final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/homePage/accompanyRecommendList');
     final response = await _client.postJson(
@@ -156,17 +157,22 @@ class ApiService {
     );
 
     final data = response['data'];
-    // 调试：查看第一条记录的原始数据
     if (data is Map<String, dynamic>) {
       final records = data['records'];
       if (records is List && records.isNotEmpty) {
-        final firstRecord = records.first;
-        AppLogger.info('推荐列表第一条原始数据: $firstRecord', tag: 'wangling');
+        AppLogger.info('推荐列表第一条原始数据: ${records.first}', tag: 'wangling');
       }
+      return HomeNewRecommendEntity.fromJson(response);
     }
-    
-    if (data is Map<String, dynamic>) return HomeRecommend.fromJson(data);
-    return const HomeRecommend(pageNo: '1', pageSize: '20', pages: '0', records: <UserRecord>[], total: '0');
+
+    final fallback = HomeNewRecommendEntity()
+      ..data = HomeNewRecommendData()
+      ..data.pageNo = 1
+      ..data.pageSize = 20
+      ..data.pages = 0
+      ..data.total = 0
+      ..data.records = <HomeNewRecommendDataRecords>[];
+    return fallback;
   }
 
   ///圈子列表显示

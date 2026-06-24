@@ -4,14 +4,15 @@ import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
 import '../../core/network/network_client.dart';
 import '../../models/accompany_category_detail_entity.dart';
-import '../../models/home_recommend.dart';
+import '../../models/home_new_recommend_entity.dart';
 import '../../pages/login/login_page.dart';
 import '../../viewmodels/home_view_model.dart';
 
 class PersonalDetailPage extends StatefulWidget {
-  const PersonalDetailPage({super.key, required this.record});
+  const PersonalDetailPage({super.key, required this.record, required this.categoryId});
 
-  final UserRecord record;
+  final HomeNewRecommendDataRecords record;
+  final String categoryId;
 
   @override
   State<PersonalDetailPage> createState() => _PersonalDetailPageState();
@@ -30,7 +31,9 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
   void initState() {
     super.initState();
     _viewModel = HomeViewModel();
-    _categoryId = widget.record.categoryId.toString();
+    _categoryId = widget.categoryId.isNotEmpty
+        ? widget.categoryId
+        : (widget.record.categoryId != 0 ? widget.record.categoryId.toString() : '');
     _userId = widget.record.userId.toString();
     _checkAuthAndLoadDetail();
   }
@@ -57,7 +60,7 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
   Future<void> _loadDetail() async {
     try {
       AppLogger.info('正在加载详情: categoryId=$_categoryId, userId=$_userId', tag: 'wangling');
-      final detail = await _viewModel.loadAccompanyCategoryDetail("1984157213324869633","1999365374107365377");//_categoryId, _userId);
+      final detail = await _viewModel.loadAccompanyCategoryDetail(_categoryId, _userId);
       if (!mounted) return;
       setState(() {
         _detail = detail;
