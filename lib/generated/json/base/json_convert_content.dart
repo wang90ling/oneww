@@ -10,6 +10,8 @@ import 'package:oneww/models/home_new_recommend_entity.dart';
 import 'package:oneww/models/play_room_response_entity.dart';
 import 'package:oneww/models/playroom_by_hot_request.dart';
 import 'package:oneww/models/post_list_response_entity.dart';
+import 'package:oneww/models/query_dispatch_rooms_by_heat_request_entity.dart';
+import 'package:oneww/models/query_dispatch_rooms_by_heat_response_entity.dart';
 
 JsonConvert jsonConvert = JsonConvert();
 
@@ -786,6 +788,146 @@ class JsonConvert {
           PostListResponseDataUserPropDetailDtoNobleCard.fromJson(e))
           .toList() as M;
     }
+    if (<QueryDispatchRoomsByHeatRequestEntity>[] is M) {
+      return data.map<QueryDispatchRoomsByHeatRequestEntity>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatRequestEntity.fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseEntity>[] is M) {
+      return data.map<QueryDispatchRoomsByHeatResponseEntity>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseEntity.fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseData>[] is M) {
+      return data.map<QueryDispatchRoomsByHeatResponseData>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseData.fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecords>[] is M) {
+      return data
+          .map<QueryDispatchRoomsByHeatResponseDataRecords>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecords.fromJson(e))
+          .toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsPreside>[] is M) {
+      return data
+          .map<QueryDispatchRoomsByHeatResponseDataRecordsPreside>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPreside.fromJson(e))
+          .toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto
+              .fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges
+              .fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsOwner>[] is M) {
+      return data
+          .map<QueryDispatchRoomsByHeatResponseDataRecordsOwner>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwner.fromJson(e))
+          .toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto
+              .fromJson(e)).toList() as M;
+    }
+    if (<QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord
+              .fromJson(e)).toList() as M;
+    }
+    if (<
+        QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges>[
+    ] is M) {
+      return data.map<
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges>((
+          Map<String, dynamic> e) =>
+          QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges
+              .fromJson(e)).toList() as M;
+    }
 
     debugPrint("$M not found");
 
@@ -1046,6 +1188,55 @@ class JsonConvertClassCollection {
         .fromJson,
     (PostListResponseDataUserPropDetailDtoNobleCard)
         .toString(): PostListResponseDataUserPropDetailDtoNobleCard.fromJson,
+    (QueryDispatchRoomsByHeatRequestEntity)
+        .toString(): QueryDispatchRoomsByHeatRequestEntity.fromJson,
+    (QueryDispatchRoomsByHeatResponseEntity)
+        .toString(): QueryDispatchRoomsByHeatResponseEntity.fromJson,
+    (QueryDispatchRoomsByHeatResponseData)
+        .toString(): QueryDispatchRoomsByHeatResponseData.fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecords)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecords.fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPreside)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPreside
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwner)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwner.fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord
+        .fromJson,
+    (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges)
+        .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges
+        .fromJson,
   };
 
   bool containsKey(String type) {

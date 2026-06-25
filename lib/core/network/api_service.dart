@@ -11,6 +11,8 @@ import '../../models/new_circle_request.dart';
 import '../../models/play_room_response_entity.dart';
 import '../../models/playroom_by_hot_request.dart';
 import '../../models/post_list_response_entity.dart';
+import '../../models/query_dispatch_rooms_by_heat_request_entity.dart';
+import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
 import '../../models/wan_article_entity.dart';
@@ -25,7 +27,9 @@ class ApiService {
   final NetworkClient _client;
 
   Future<List<TodoItem>> fetchTodoItems() async {
-    final uri = Uri.parse('${NetworkEndpoints.baseUrl}${NetworkEndpoints.todos}');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.baseUrl}${NetworkEndpoints.todos}',
+    );
     final data = await _client.getList(uri);
     AppLogger.info('data:$data', tag: 'wangling');
 
@@ -39,7 +43,9 @@ class ApiService {
   }
 
   Future<List<AppUser>> fetchUsers() async {
-    final uri = Uri.parse('${NetworkEndpoints.baseUrl}${NetworkEndpoints.users}');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.baseUrl}${NetworkEndpoints.users}',
+    );
     AppLogger.info('baseUrl:${uri.path}', tag: 'ApiService wangling');
     final data = await _client.getList(uri);
 
@@ -54,7 +60,9 @@ class ApiService {
   }
 
   Future<WanArticleResponse> fetchWanArticles(int page) async {
-    final uri = Uri.parse('${NetworkEndpoints.wanAndroidBaseUrl}${NetworkEndpoints.articleList(page)}');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.wanAndroidBaseUrl}${NetworkEndpoints.articleList(page)}',
+    );
     AppLogger.info('请求文章列表: $uri', tag: 'ApiService');
 
     final response = await http.get(uri);
@@ -65,7 +73,10 @@ class ApiService {
       }
       throw Exception('Invalid response format');
     }
-    throw http.ClientException('Request failed with status ${response.statusCode}', response.request?.url);
+    throw http.ClientException(
+      'Request failed with status ${response.statusCode}',
+      response.request?.url,
+    );
   }
 
   ///发送验证码
@@ -75,17 +86,23 @@ class ApiService {
     required String ticket,
     required String randStr,
   }) async {
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.sendTelephoneNew}').replace(
-      queryParameters: <String, String>{
-        'phoneCountryCode': phoneCountryCode,
-        'telephone': telephone,
-        'ticket': ticket,
-        'randStr': randStr,
-      },
-    );
+    final uri =
+        Uri.parse(
+          '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.sendTelephoneNew}',
+        ).replace(
+          queryParameters: <String, String>{
+            'phoneCountryCode': phoneCountryCode,
+            'telephone': telephone,
+            'ticket': ticket,
+            'randStr': randStr,
+          },
+        );
 
     AppLogger.info('请求短信验证码: $uri', tag: 'ApiService');
-    return await _client.getJson(uri, headers: const <String, String>{'Accept': '*/*'});
+    return await _client.getJson(
+      uri,
+      headers: const <String, String>{'Accept': '*/*'},
+    );
   }
 
   ///通过验证码登录
@@ -94,7 +111,9 @@ class ApiService {
     required String telephone,
     required String code,
   }) async {
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.loginCode}');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.loginCode}',
+    );
     AppLogger.info('验证码登录: $uri', tag: 'ApiService');
 
     return await _client.postJson(
@@ -116,12 +135,20 @@ class ApiService {
   ///获取种类列表显示
   Future<List<HomeCategoryItem>> getCategoryList() async {
     final token = await _resolveToken();
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getCategoryList}');
-    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getCategoryList}',
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
 
     final data = response['data'];
     if (data is List) {
-      return data.whereType<Map<String, dynamic>>().map(HomeCategoryItem.fromJson).toList();
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(HomeCategoryItem.fromJson)
+          .toList();
     }
     return <HomeCategoryItem>[];
   }
@@ -144,7 +171,9 @@ class ApiService {
   ///推荐列表显示
   Future<HomeNewRecommendEntity> getRecommendList(RecommendRequest req) async {
     final token = await _resolveToken();
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/homePage/accompanyRecommendList');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}/homePage/accompanyRecommendList',
+    );
     final response = await _client.postJson(
       uri,
       headers: <String, String>{
@@ -199,7 +228,10 @@ class ApiService {
 
     if (data is List) {
       return PostListResponseEntity(
-        data: data.whereType<Map<String, dynamic>>().map(PostListResponseData.fromJson).toList(),
+        data: data
+            .whereType<Map<String, dynamic>>()
+            .map(PostListResponseData.fromJson)
+            .toList(),
       );
     }
 
@@ -207,9 +239,13 @@ class ApiService {
   }
 
   ///热门房间列表
-  Future<PlayRoomResponseEntity> getPlayRoomByHot(PlayroomByHotRequest req) async {
+  Future<PlayRoomResponseEntity> getPlayRoomByHot(
+    PlayroomByHotRequest req,
+  ) async {
     final token = await _resolveToken();
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/roomInfo/findPageHot');
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}/roomInfo/findPageHot',
+    );
     AppLogger.info('热门直播房间: $uri, body: ${req.toJson()}', tag: 'ApiService');
 
     try {
@@ -228,8 +264,7 @@ class ApiService {
 
       if (data is Map<String, dynamic>) {
         final pageData = PlayRoomResponseData.fromJson(data);
-        pageData.records = pageData.records
-            .map((item) {
+        pageData.records = pageData.records.map((item) {
           item.roomName = _sanitizeText(item.roomName);
           item.moduleName = _sanitizeText(item.moduleName);
           item.mainLabel = _sanitizeText(item.mainLabel);
@@ -239,8 +274,7 @@ class ApiService {
           item.welcomeMsg = _sanitizeText(item.welcomeMsg);
           item.heatValueStr = _sanitizeText(item.heatValueStr);
           return item;
-        })
-            .toList();
+        }).toList();
 
         return PlayRoomResponseEntity(data: pageData);
       }
@@ -248,13 +282,21 @@ class ApiService {
       if (data is List) {
         return PlayRoomResponseEntity(
           data: PlayRoomResponseData()
-            ..records = data.whereType<Map<String, dynamic>>().map(PlayRoomResponseDataRecords.fromJson).toList(),
+            ..records = data
+                .whereType<Map<String, dynamic>>()
+                .map(PlayRoomResponseDataRecords.fromJson)
+                .toList(),
         );
       }
 
       return PlayRoomResponseEntity(data: PlayRoomResponseData());
     } catch (error, stackTrace) {
-      AppLogger.error('热门直播房间接口失败: $uri', error: error, stackTrace: stackTrace, tag: 'ApiService');
+      AppLogger.error(
+        '热门直播房间接口失败: $uri',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'ApiService',
+      );
       return PlayRoomResponseEntity(data: PlayRoomResponseData());
     }
   }
@@ -262,32 +304,58 @@ class ApiService {
   ///搭子详情接口对接
   Future<List<HomeCategoryItem>> getAccompanyDetailInfo(String userId) async {
     final token = await _resolveToken();
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getDetailInfo}'+userId);
-    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getDetailInfo}' +
+          userId,
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
 
     final data = response['data'];
-    AppLogger.info('getAccompanyDetailInfo data:'+data.toString(),tag: 'wangling');
+    AppLogger.info(
+      'getAccompanyDetailInfo data:' + data.toString(),
+      tag: 'wangling',
+    );
     if (data is List) {
-      return data.whereType<Map<String, dynamic>>().map(HomeCategoryItem.fromJson).toList();
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(HomeCategoryItem.fromJson)
+          .toList();
     }
     return <HomeCategoryItem>[];
   }
 
-
   ///搭子详情接口对接
-  Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId, String userId) async {
+  Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(
+    String categoryId,
+    String userId,
+  ) async {
     final token = await _resolveToken();
-    AppLogger.info('getAccompanyCategoryDetail - Token检查: ${token ?? "null"}', tag: 'wangling');
-    
-    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/accompany/accompanyCategoryDetail').replace(
-      queryParameters: <String, String>{
-        'categoryId': categoryId,
-        'userId': userId,
-      },
+    AppLogger.info(
+      'getAccompanyCategoryDetail - Token检查: ${token ?? "null"}',
+      tag: 'wangling',
     );
 
-    AppLogger.info('getAccompanyCategoryDetail - 请求Headers: ${_buildAppHeaders(token)}', tag: 'wangling');
-    final response = await _client.getJson(uri, headers: _buildAppHeaders(token));
+    final uri =
+        Uri.parse(
+          '${NetworkEndpoints.appBaseUrl}/accompany/accompanyCategoryDetail',
+        ).replace(
+          queryParameters: <String, String>{
+            'categoryId': categoryId,
+            'userId': userId,
+          },
+        );
+
+    AppLogger.info(
+      'getAccompanyCategoryDetail - 请求Headers: ${_buildAppHeaders(token)}',
+      tag: 'wangling',
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
 
     final data = response['data'];
     AppLogger.info('getAccompanyCategoryDetail data:$data', tag: 'wangling');
@@ -298,7 +366,42 @@ class ApiService {
   }
 
   ///派单大厅接口对接
+  Future<QueryDispatchRoomsByHeatResponseEntity> queryDispatchRoomsByHeat(
+    QueryDispatchRoomsByHeatRequestEntity req,
+  ) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}/channelRoom/queryDispatchRoomsByHeat',
+    );
+    final response = await _client.postJson(
+      uri,
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-device': 'APP',
+        if (token != null && token.isNotEmpty) 'authorization': token,
+      },
+      body: req.toJson(),
+    );
 
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final records = data['records'];
+      if (records is List && records.isNotEmpty) {
+        AppLogger.info('推荐列表第一条原始数据: ${records.first}', tag: 'wangling');
+      }
+      return QueryDispatchRoomsByHeatResponseEntity.fromJson(response);
+    }
+
+    final fallback = QueryDispatchRoomsByHeatResponseEntity()
+      ..data = QueryDispatchRoomsByHeatResponseData()
+      ..data.pageNo = 1
+      ..data.pageSize = 20
+      ..data.pages = 0
+      ..data.total = 0
+      ..data.records = <QueryDispatchRoomsByHeatResponseDataRecords>[];
+    return fallback;
+  }
 
   static String? _sanitizeText(String? value) {
     if (value == null) return null;
