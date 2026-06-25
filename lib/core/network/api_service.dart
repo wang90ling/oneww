@@ -297,6 +297,8 @@ class ApiService {
     throw const FormatException('Invalid accompany category detail response');
   }
 
+  ///派单大厅接口对接
+
 
   static String? _sanitizeText(String? value) {
     if (value == null) return null;
