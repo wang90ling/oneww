@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+///派单厅功能实现
 class DispatchingCenterListPage extends StatefulWidget {
   const DispatchingCenterListPage({super.key});
 
