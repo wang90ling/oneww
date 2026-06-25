@@ -6,6 +6,8 @@ import '../../core/network/api_service.dart';
 import '../../core/network/network_client.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_new_recommend_entity.dart';
+import '../../models/query_dispatch_rooms_by_heat_request_entity.dart';
+import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../login/login_page.dart';
 import 'personal_detail_page.dart';
@@ -37,71 +39,10 @@ class _HomePageState extends State<HomePage> {
   static const List<String> _homeTabs = <String>['点Ta', '派单厅', '树洞', '休闲玩'];
   int _selectedHomeTabIndex = 0;
 
-  final List<_DispatchRoomItem> _dispatchRooms = const [
-    _DispatchRoomItem(
-      rank: 1,
-      title: 'test111',
-      coverUrl:
-          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-      top: true,
-    ),
-    _DispatchRoomItem(
-      rank: 2,
-      title: '测试派单房',
-      coverUrl:
-          'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-      top: true,
-    ),
-    _DispatchRoomItem(
-      rank: 3,
-      title: '石伟伟',
-      coverUrl:
-          'https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-      top: true,
-    ),
-    _DispatchRoomItem(
-      title: '暂留test',
-      coverUrl:
-          'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-    ),
-    _DispatchRoomItem(
-      title: '8468',
-      coverUrl:
-          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-    ),
-    _DispatchRoomItem(
-      title: '小浣熊派单厅',
-      coverUrl:
-          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-    ),
-    _DispatchRoomItem(
-      title: '派单厅',
-      coverUrl:
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
-      hostName: '暂无主持~',
-      heat: '1100',
-      tag: '派单',
-      locked: true,
-    ),
-  ];
+  // 派单厅数据
+  bool _isLoadingDispatchRooms = true;
+  String? _dispatchRoomsError;
+  List<QueryDispatchRoomsByHeatResponseDataRecords> _dispatchRooms = [];
   int _selectedDispatchRoomIndex = 0;
 
   @override
@@ -125,6 +66,46 @@ class _HomePageState extends State<HomePage> {
     }
     _loadCategories();
     _getRecommendList();
+    _loadDispatchRooms();
+  }
+
+  /// 加载派单厅数据
+  Future<void> _loadDispatchRooms() async {
+    setState(() {
+      _isLoadingDispatchRooms = true;
+      _dispatchRoomsError = null;
+    });
+    try {
+      final req = QueryDispatchRoomsByHeatRequestEntity(pageNo: 1, pageSize: 20);
+      final response = await _apiService.queryDispatchRoomsByHeat(req);
+      final records = response.data?.records ?? const [];
+      AppLogger.info('派单厅数据加载成功: ${records.length}条', tag: 'wangling');
+      if (!mounted) return;
+      setState(() {
+        _dispatchRooms = records;
+        _isLoadingDispatchRooms = false;
+      });
+    } on UnauthorizedException {
+      if (!mounted) return;
+      setState(() {
+        _dispatchRoomsError = '加载派单厅失败，请重新登录';
+        _isLoadingDispatchRooms = false;
+      });
+      await AuthStorage.clearSession();
+      if (!mounted) return;
+      await Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } catch (error) {
+      AppLogger.error('加载派单厅失败', error: error, tag: 'wangling');
+      if (!mounted) return;
+      final errorMsg = error.toString();
+      setState(() {
+        _dispatchRoomsError = '加载派单厅失败\n$errorMsg';
+        _isLoadingDispatchRooms = false;
+      });
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -417,6 +398,45 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildDispatchEntrySection() {
     final bottomPadding = MediaQuery.of(context).padding.bottom + 96;
+    
+    // 加载中状态
+    if (_isLoadingDispatchRooms) {
+      return Column(
+        children: [
+          _DispatchSkeletonCard(),
+          const SizedBox(height: 10),
+          _DispatchSkeletonCard(),
+          const SizedBox(height: 10),
+          _DispatchSkeletonCard(),
+          SizedBox(height: bottomPadding),
+        ],
+      );
+    }
+    
+    // 错误状态
+    if (_dispatchRoomsError != null) {
+      return Column(
+        children: [
+          _DispatchErrorCard(
+            message: _dispatchRoomsError!,
+            onRetry: _loadDispatchRooms,
+          ),
+          SizedBox(height: bottomPadding),
+        ],
+      );
+    }
+    
+    // 空数据状态
+    if (_dispatchRooms.isEmpty) {
+      return Column(
+        children: [
+          _DispatchEmptyCard(),
+          SizedBox(height: bottomPadding),
+        ],
+      );
+    }
+    
+    // 正常数据展示
     return Column(
       children: [
         _TopHeroGrid(rooms: _dispatchRooms.take(3).toList()),
@@ -1219,32 +1239,31 @@ class _EmptyCard extends StatelessWidget {
   );
 }
 
-class _DispatchRoomItem {
-  const _DispatchRoomItem({
-    required this.title,
-    required this.coverUrl,
-    required this.hostName,
-    required this.heat,
-    required this.tag,
-    this.rank,
-    this.locked = false,
-    this.top = false,
-  });
-
-  final int? rank;
-  final String title;
-  final String coverUrl;
-  final String hostName;
-  final String heat;
-  final String tag;
-  final bool locked;
-  final bool top;
+class _ImageUrlHelper {
+  /// 验证URL是否为有效的图片格式
+  static bool isValidImageUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    
+    // 图片扩展名白名单
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+    final lowerUrl = url.toLowerCase();
+    
+    return validExtensions.any((ext) => lowerUrl.endsWith(ext));
+  }
+  
+  /// 获取安全的图片URL，如果无效则返回null
+  static String? getSafeImageUrl(String? url) {
+    if (isValidImageUrl(url)) {
+      return url;
+    }
+    return null;
+  }
 }
 
 class _TopHeroGrid extends StatelessWidget {
   const _TopHeroGrid({required this.rooms});
 
-  final List<_DispatchRoomItem> rooms;
+  final List<QueryDispatchRoomsByHeatResponseDataRecords> rooms;
 
   @override
   Widget build(BuildContext context) {
@@ -1253,7 +1272,7 @@ class _TopHeroGrid extends StatelessWidget {
       child: Row(
         children: [
           for (int i = 0; i < rooms.length; i++) ...[
-            Expanded(child: _TopHeroCard(room: rooms[i])),
+            Expanded(child: _TopHeroCard(room: rooms[i], rank: i + 1)),
             if (i != rooms.length - 1) const SizedBox(width: 10),
           ],
         ],
@@ -1263,12 +1282,19 @@ class _TopHeroGrid extends StatelessWidget {
 }
 
 class _TopHeroCard extends StatelessWidget {
-  const _TopHeroCard({required this.room});
+  const _TopHeroCard({required this.room, required this.rank});
 
-  final _DispatchRoomItem room;
+  final QueryDispatchRoomsByHeatResponseDataRecords room;
+  final int rank;
 
   @override
   Widget build(BuildContext context) {
+    // 从房间数据中提取信息
+    final roomName = room.roomName.isNotEmpty ? room.roomName : '派单厅${room.roomNo}';
+    final coverUrl = _ImageUrlHelper.getSafeImageUrl(room.roomAvatar);
+    final hostName = room.preside.nickName.isNotEmpty ? room.preside.nickName : '暂无主持~';
+    final heatValue = room.heatValue.toString();
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
@@ -1291,34 +1317,35 @@ class _TopHeroCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 child: AspectRatio(
                   aspectRatio: 0.82,
-                  child: Image.network(
-                    room.coverUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallbackCover(room.rank),
-                  ),
+                  child: coverUrl != null
+                      ? Image.network(
+                          coverUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _fallbackCover(rank),
+                        )
+                      : _fallbackCover(rank),
                 ),
               ),
-              if (room.rank != null)
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  child: _RankBadge(rank: room.rank!),
-                ),
+              Positioned(
+                left: 0,
+                top: 0,
+                child: _RankBadge(rank: rank),
+              ),
               Positioned(
                 right: 8,
                 bottom: 8,
-                child: _HeatBadge(text: room.heat),
+                child: _HeatBadge(text: heatValue),
               ),
             ],
           ),
           const SizedBox(height: 7),
           Row(
             children: [
-              _SmallTag(text: room.tag),
+              _SmallTag(text: '派单'),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  room.title,
+                  roomName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1341,7 +1368,7 @@ class _TopHeroCard extends StatelessWidget {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  room.hostName,
+                  hostName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1358,7 +1385,7 @@ class _TopHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _fallbackCover(int? rank) {
+  Widget _fallbackCover(int rank) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1494,12 +1521,19 @@ class _DispatchRoomCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _DispatchRoomItem room;
+  final QueryDispatchRoomsByHeatResponseDataRecords room;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    // 从房间数据中提取信息
+    final roomName = room.roomName.isNotEmpty ? room.roomName : '派单厅${room.roomNo}';
+    final coverUrl = _ImageUrlHelper.getSafeImageUrl(room.roomAvatar);
+    final hostName = room.preside.nickName.isNotEmpty ? room.preside.nickName : '暂无主持~';
+    final heatValue = room.heatValue.toString();
+    final isLocked = room.passwordSettings == 1;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
@@ -1534,28 +1568,43 @@ class _DispatchRoomCard extends StatelessWidget {
                     child: SizedBox(
                       width: 108,
                       height: 108,
-                      child: Image.network(
-                        room.coverUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFCBB8FF), Color(0xFFF1D2F2)],
+                      child: coverUrl != null
+                          ? Image.network(
+                              coverUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Color(0xFFCBB8FF), Color(0xFFF1D2F2)],
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.image_rounded,
+                                  color: Colors.white70,
+                                  size: 34,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Color(0xFFCBB8FF), Color(0xFFF1D2F2)],
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.image_rounded,
+                                color: Colors.white70,
+                                size: 34,
+                              ),
                             ),
-                          ),
-                          child: const Icon(
-                            Icons.image_rounded,
-                            color: Colors.white70,
-                            size: 34,
-                          ),
-                        ),
-                      ),
                     ),
                   ),
-                  Positioned(left: 8, top: 8, child: _SmallTag(text: room.tag)),
-                  if (room.locked)
+                  Positioned(left: 8, top: 8, child: _SmallTag(text: '派单')),
+                  if (isLocked)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -1585,7 +1634,7 @@ class _DispatchRoomCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              room.title,
+                              roomName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1597,7 +1646,7 @@ class _DispatchRoomCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _HeatBadge(text: room.heat),
+                          _HeatBadge(text: heatValue),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -1610,7 +1659,7 @@ class _DispatchRoomCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            room.hostName,
+                            hostName,
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFFB2B2B2),
@@ -1623,6 +1672,90 @@ class _DispatchRoomCard extends StatelessWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 派单厅骨架屏组件
+class _DispatchSkeletonCard extends StatelessWidget {
+  const _DispatchSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 132,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+  }
+}
+
+// 派单厅错误卡片
+class _DispatchErrorCard extends StatelessWidget {
+  const _DispatchErrorCard({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: Text(message)),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 派单厅空数据卡片
+class _DispatchEmptyCard extends StatelessWidget {
+  const _DispatchEmptyCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Center(
+          child: Column(
+            children: [
+              Icon(Icons.meeting_room_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('暂无派单厅数据'),
             ],
           ),
         ),

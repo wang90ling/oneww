@@ -3,7 +3,7 @@ import 'package:oneww/models/query_dispatch_rooms_by_heat_request_entity.dart';
 
 QueryDispatchRoomsByHeatRequestEntity $QueryDispatchRoomsByHeatRequestEntityFromJson(
     Map<String, dynamic> json) {
-  final QueryDispatchRoomsByHeatRequestEntity queryDispatchRoomsByHeatRequestEntity = QueryDispatchRoomsByHeatRequestEntity();
+  final QueryDispatchRoomsByHeatRequestEntity queryDispatchRoomsByHeatRequestEntity = QueryDispatchRoomsByHeatRequestEntity(pageNo: 1, pageSize:20);
   final int? pageNo = jsonConvert.convert<int>(json['pageNo']);
   if (pageNo != null) {
     queryDispatchRoomsByHeatRequestEntity.pageNo = pageNo;
@@ -28,7 +28,7 @@ extension QueryDispatchRoomsByHeatRequestEntityExtension on QueryDispatchRoomsBy
     int? pageNo,
     int? pageSize,
   }) {
-    return QueryDispatchRoomsByHeatRequestEntity()
+    return QueryDispatchRoomsByHeatRequestEntity(pageNo: 1, pageSize: 20)
       ..pageNo = pageNo ?? this.pageNo
       ..pageSize = pageSize ?? this.pageSize;
   }

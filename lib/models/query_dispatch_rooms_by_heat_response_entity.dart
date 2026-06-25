@@ -9,7 +9,7 @@ class QueryDispatchRoomsByHeatResponseEntity {
 	String requestId = '';
 	int code = 0;
 	String message = '';
-	late QueryDispatchRoomsByHeatResponseData data;
+	QueryDispatchRoomsByHeatResponseData data = QueryDispatchRoomsByHeatResponseData();
 
 	QueryDispatchRoomsByHeatResponseEntity();
 
@@ -56,8 +56,8 @@ class QueryDispatchRoomsByHeatResponseDataRecords {
 	int roomMode = 0;
 	String announcement = '';
 	String welcomeMsg = '';
-	late QueryDispatchRoomsByHeatResponseDataRecordsPreside preside;
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwner owner;
+	QueryDispatchRoomsByHeatResponseDataRecordsPreside preside = QueryDispatchRoomsByHeatResponseDataRecordsPreside();
+	QueryDispatchRoomsByHeatResponseDataRecordsOwner owner = QueryDispatchRoomsByHeatResponseDataRecordsOwner();
 	int status = 0;
 	int openStatus = 0;
 	int queueCnt = 0;
@@ -90,8 +90,8 @@ class QueryDispatchRoomsByHeatResponseDataRecordsPreside {
 	String introduced = '';
 	int level = 0;
 	int roomLevel = 0;
-	late QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto roomLevelConfigDto;
-	late QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto nobleLevelDto;
+	QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto roomLevelConfigDto = QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto();
+	QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto nobleLevelDto = QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto();
 	String accompanyLevel = '';
 	String onlineTime = '';
 	String customIdentityImage = '';
@@ -161,9 +161,9 @@ class QueryDispatchRoomsByHeatResponseDataRecordsPresideRoomLevelConfigDto {
 
 @JsonSerializable()
 class QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto {
-	late QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent userCurrent;
-	late QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase levelBase;
-	late QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord purchaseRecord;
+	QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent userCurrent = QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoUserCurrent();
+	QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase levelBase = QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoLevelBase();
+	QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord purchaseRecord = QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPurchaseRecord();
 	List<QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDtoPrivileges> privileges = [];
 
 	QueryDispatchRoomsByHeatResponseDataRecordsPresideNobleLevelDto();
@@ -299,8 +299,8 @@ class QueryDispatchRoomsByHeatResponseDataRecordsOwner {
 	String introduced = '';
 	int level = 0;
 	int roomLevel = 0;
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto roomLevelConfigDto;
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto nobleLevelDto;
+	QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto roomLevelConfigDto = QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto();
+	QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto nobleLevelDto = QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto();
 	String accompanyLevel = '';
 	String onlineTime = '';
 	String customIdentityImage = '';
@@ -370,9 +370,9 @@ class QueryDispatchRoomsByHeatResponseDataRecordsOwnerRoomLevelConfigDto {
 
 @JsonSerializable()
 class QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto {
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent userCurrent;
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase levelBase;
-	late QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord purchaseRecord;
+	QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent userCurrent = QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoUserCurrent();
+	QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase levelBase = QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoLevelBase();
+	QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord purchaseRecord = QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPurchaseRecord();
 	List<QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges> privileges = [];
 
 	QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDto();

@@ -373,6 +373,7 @@ class ApiService {
     final uri = Uri.parse(
       '${NetworkEndpoints.appBaseUrl}/channelRoom/queryDispatchRoomsByHeat',
     );
+    AppLogger.info('派单厅列表: $uri, body: ${req.toJson()}', tag: 'ApiService');
     final response = await _client.postJson(
       uri,
       headers: <String, String>{
@@ -388,7 +389,7 @@ class ApiService {
     if (data is Map<String, dynamic>) {
       final records = data['records'];
       if (records is List && records.isNotEmpty) {
-        AppLogger.info('推荐列表第一条原始数据: ${records.first}', tag: 'wangling');
+        AppLogger.info('派单厅第一条原始数据: ${records.first}', tag: 'wangling');
       }
       return QueryDispatchRoomsByHeatResponseEntity.fromJson(response);
     }

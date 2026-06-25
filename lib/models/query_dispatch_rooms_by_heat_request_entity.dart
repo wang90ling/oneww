@@ -5,8 +5,8 @@ export 'package:oneww/generated/json/query_dispatch_rooms_by_heat_request_entity
 
 @JsonSerializable()
 class QueryDispatchRoomsByHeatRequestEntity {
-	int pageNo = 0;
-	int pageSize = 0;
+	int pageNo = 1;
+	int pageSize = 20;
 
 	QueryDispatchRoomsByHeatRequestEntity({required int pageNo, required int pageSize});
 
