@@ -6,6 +6,8 @@ import '../../core/network/api_service.dart';
 import '../../core/network/network_client.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_new_recommend_entity.dart';
+import '../../models/play_room_response_entity.dart';
+import '../../models/playroom_by_hot_request.dart';
 import '../../models/query_dispatch_rooms_by_heat_request_entity.dart';
 import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
@@ -45,6 +47,14 @@ class _HomePageState extends State<HomePage> {
   List<QueryDispatchRoomsByHeatResponseDataRecords> _dispatchRooms = [];
   int _selectedDispatchRoomIndex = 0;
 
+  // 树洞热门房间数据
+  bool _isLoadingHotRooms = true;
+  String? _hotRoomsError;
+  List<PlayRoomResponseDataRecords> _hotRooms = [];
+  int _selectedHotRoomIndex = 0;
+  int _hotRoomsPageNo = 1;
+  bool _hasMoreHotRooms = false;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +77,7 @@ class _HomePageState extends State<HomePage> {
     _loadCategories();
     _getRecommendList();
     _loadDispatchRooms();
+    _loadHotRooms();
   }
 
   /// 加载派单厅数据
@@ -106,6 +117,53 @@ class _HomePageState extends State<HomePage> {
         _isLoadingDispatchRooms = false;
       });
     }
+  }
+
+  /// 加载树洞热门房间数据
+  Future<void> _loadHotRooms({bool refresh = false}) async {
+    if (refresh) {
+      _hotRoomsPageNo = 1;
+    }
+    setState(() {
+      _isLoadingHotRooms = true;
+      _hotRoomsError = null;
+    });
+    try {
+      final req = PlayroomByHotRequest(pageNo: _hotRoomsPageNo, pageSize: 10);
+      final response = await _apiService.getPlayRoomByHot(req);
+      final records = response.data?.records ?? [];
+      AppLogger.info('树洞热门房间数据加载成功: ${records.length}条', tag: 'wangling');
+      if (!mounted) return;
+      setState(() {
+        if (refresh || _hotRoomsPageNo == 1) {
+          _hotRooms = records;
+        } else {
+          _hotRooms = [..._hotRooms, ...records];
+        }
+        _hasMoreHotRooms = (response.data?.pageNo ?? 1) < (response.data?.pages ?? 1);
+        _isLoadingHotRooms = false;
+      });
+    } on UnauthorizedException {
+      if (!mounted) return;
+      setState(() {
+        _hotRoomsError = '加载树洞房间失败，请重新登录';
+        _isLoadingHotRooms = false;
+      });
+    } catch (error) {
+      AppLogger.error('加载树洞房间失败', error: error, tag: 'wangling');
+      if (!mounted) return;
+      setState(() {
+        _hotRoomsError = '加载树洞房间失败\n${error.toString()}';
+        _isLoadingHotRooms = false;
+      });
+    }
+  }
+
+  /// 加载更多树洞房间
+  Future<void> _loadMoreHotRooms() async {
+    if (_isLoadingHotRooms || !_hasMoreHotRooms) return;
+    _hotRoomsPageNo++;
+    await _loadHotRooms();
   }
 
   Future<void> _loadCategories() async {
@@ -202,11 +260,20 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildTopHeader(context)),
-            SliverToBoxAdapter(child: _buildTabBody()),
-          ],
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (_selectedHomeTabIndex == 2 && 
+                notification.metrics.pixels >= notification.metrics.maxScrollExtent - 200) {
+              _loadMoreHotRooms();
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _buildTopHeader(context)),
+              _buildTabBody(),
+            ],
+          ),
         ),
       ),
     );
@@ -244,23 +311,21 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTabBody() {
     switch (_selectedHomeTabIndex) {
       case 0:
-        return _buildRecommendSection();
+        return SliverList(delegate: SliverChildListDelegate([_buildRecommendSection()]));
       case 1:
-        return _buildDispatchEntrySection();
+        return SliverList(delegate: SliverChildListDelegate([_buildDispatchEntrySection()]));
       case 2:
-        return _buildSimpleTabSection(
-          title: '树洞',
-          subtitle: '这里展示树洞内容',
-          icon: Icons.forum_rounded,
-        );
+        return _buildHotRoomSliverSection();
       case 3:
-        return _buildSimpleTabSection(
-          title: '休闲玩',
-          subtitle: '这里展示休闲玩法内容',
-          icon: Icons.sports_esports_rounded,
-        );
+        return SliverList(delegate: SliverChildListDelegate([
+          _buildSimpleTabSection(
+            title: '休闲玩',
+            subtitle: '这里展示休闲玩法内容',
+            icon: Icons.sports_esports_rounded,
+          ),
+        ]));
       default:
-        return const SizedBox.shrink();
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
   }
 
@@ -455,6 +520,217 @@ class _HomePageState extends State<HomePage> {
         }),
         SizedBox(height: bottomPadding),
       ],
+    );
+  }
+
+  /// 树洞热门房间区域 - Sliver版本
+  Widget _buildHotRoomSliverSection() {
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        // 树洞标题栏
+        _buildHotRoomHeader(),
+        const SizedBox(height: 14),
+        // 分类标签栏
+        _buildHotRoomCategoryBar(),
+        const SizedBox(height: 16),
+        // 内容区域
+        _buildHotRoomContent(),
+      ]),
+    );
+  }
+
+  /// 树洞热门房间区域
+  Widget _buildHotRoomSection() {
+    return Column(
+      children: [
+        // 树洞标题栏
+        _buildHotRoomHeader(),
+        const SizedBox(height: 14),
+        // 分类标签栏
+        _buildHotRoomCategoryBar(),
+        const SizedBox(height: 16),
+        // 内容区域
+        Expanded(
+          child: _buildHotRoomContent(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHotRoomHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '树洞',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '发现正在热聊的房间',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.search_rounded, color: Color(0xFF1A1A1A)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHotRoomCategoryBar() {
+    final categories = ['热门', '小圈', '点唱', '情感', '交友', '电台'];
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          final selected = index == 0;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? const LinearGradient(colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)])
+                  : null,
+              color: selected ? null : Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                categories[index],
+                style: TextStyle(
+                  color: selected ? Colors.white : const Color(0xFF666666),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemCount: categories.length,
+      ),
+    );
+  }
+
+  Widget _buildHotRoomContent() {
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 96;
+
+    // 加载中状态
+    if (_isLoadingHotRooms && _hotRooms.isEmpty) {
+      return _buildHotRoomSkeleton();
+    }
+
+    // 错误状态
+    if (_hotRoomsError != null && _hotRooms.isEmpty) {
+      return SizedBox(
+        height: 300,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_hotRoomsError!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _loadHotRooms(refresh: true),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 空数据状态
+    if (_hotRooms.isEmpty) {
+      return SizedBox(
+        height: 300,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.forum_outlined, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('暂无热门房间'),
+              SizedBox(height: 8),
+              Text('下拉刷新试试', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 正常数据展示
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.9,
+      ),
+      itemCount: _hotRooms.length + (_hasMoreHotRooms ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _hotRooms.length) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return _HotRoomCard(
+          room: _hotRooms[index],
+          selected: _selectedHotRoomIndex == index,
+          onTap: () => setState(() => _selectedHotRoomIndex = index),
+        );
+      },
+    );
+  }
+
+  Widget _buildHotRoomSkeleton() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.9,
+      ),
+      itemCount: 6,
+      itemBuilder: (context, index) => _HotRoomSkeletonCard(),
     );
   }
 
@@ -1572,7 +1848,7 @@ class _DispatchRoomCard extends StatelessWidget {
                           ? Image.network(
                               coverUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
@@ -1758,6 +2034,293 @@ class _DispatchEmptyCard extends StatelessWidget {
               Text('暂无派单厅数据'),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 树洞热门房间卡片
+class _HotRoomCard extends StatelessWidget {
+  const _HotRoomCard({
+    required this.room,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final PlayRoomResponseDataRecords room;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (room.roomName ?? room.moduleName ?? '未命名房间').trim();
+    final subtitle = (room.mainLabel ?? '').trim();
+    
+    // 获取图片URL，参考 room_live_list_page.dart 的逻辑
+    String image = '';
+    if (_isValidImageUrl(room.roomAvatar ?? '')) {
+      image = room.roomAvatar!;
+    } else if (room.wallpaperPropInfo?.dynamicEffect != null && 
+               _isValidImageUrl(room.wallpaperPropInfo!.dynamicEffect!)) {
+      image = room.wallpaperPropInfo!.dynamicEffect!;
+    } else if (room.defaultWallpaperPropInfo?.dynamicEffect != null && 
+               _isValidImageUrl(room.defaultWallpaperPropInfo!.dynamicEffect!)) {
+      image = room.defaultWallpaperPropInfo!.dynamicEffect!;
+    }
+
+    if (image.isEmpty) {
+      image = _getDefaultImage();
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              AspectRatio(
+                aspectRatio: 0.9,
+                child: Image.network(
+                  image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _buildDefaultCover(),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return _buildDefaultCover();
+                  },
+                ),
+              ),
+              // 渐变遮罩
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.08),
+                        Colors.black.withValues(alpha: 0.18),
+                        Colors.black.withValues(alpha: 0.72),
+                      ],
+                      stops: const [0.0, 0.6, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+              // 标签行
+              Positioned(
+                left: 10,
+                top: 10,
+                right: 10,
+                child: Row(
+                  children: [
+                    _HotRoomPill(
+                      text: subtitle.isNotEmpty ? subtitle : '热门',
+                      gradient: const LinearGradient(colors: [Color(0xFFFF7BC1), Color(0xFFFF5B7A)]),
+                    ),
+                    const Spacer(),
+                    _HotRoomPill(
+                      text: _formatCount(room.heatValue ?? 0),
+                      gradient: const LinearGradient(colors: [Color(0xFF8E7BFF), Color(0xFF5A7BFF)]),
+                    ),
+                  ],
+                ),
+              ),
+              // 锁定图标
+              if (room.openStatus == 1)
+                Positioned(
+                  right: 10,
+                  top: 44,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.lock_rounded, size: 18, color: Color(0xFF7A5CFF)),
+                  ),
+                ),
+              // 房间名称
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatCount(int count) {
+    if (count >= 10000) {
+      final value = count / 10000;
+      return '${value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1)}w';
+    }
+    return '$count';
+  }
+
+  bool _isValidImageUrl(String url) {
+    if (url.isEmpty) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return false;
+    }
+    // 排除非图片URL
+    if (url.contains('account.xiaomi.com') || 
+        url.contains('passport') || 
+        url.contains('login') ||
+        url.contains('.html') ||
+        url.contains('.php') ||
+        url.contains('.asp')) {
+      return false;
+    }
+    final imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+    return imageExtensions.any((ext) => url.toLowerCase().contains(ext));
+  }
+
+  String _getDefaultImage() {
+    const images = [
+      'https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=900&q=80',
+    ];
+    return images[DateTime.now().millisecondsSinceEpoch % images.length];
+  }
+
+  Widget _buildDefaultCover() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.home_filled, size: 48, color: Colors.white38),
+      ),
+    );
+  }
+}
+
+/// 树洞房间标签
+class _HotRoomPill extends StatelessWidget {
+  const _HotRoomPill({required this.text, required this.gradient});
+
+  final String text;
+  final Gradient gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// 树洞房间骨架屏卡片
+class _HotRoomSkeletonCard extends StatelessWidget {
+  const _HotRoomSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                color: Colors.grey.shade200,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 14,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 10,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
