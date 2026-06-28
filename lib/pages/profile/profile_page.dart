@@ -156,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, topPadding + 8, 16, 10),
+                      padding: EdgeInsets.fromLTRB(16, 10, 16, 10),
                       child: _ProfileHeader(
                         name: name,
                         userId: userId,
@@ -176,7 +176,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: _StatsRow(followCount: followCount, fanCount: fanCount),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -411,7 +411,7 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -534,7 +534,7 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           /*Row(
             children: const [
               Expanded(child: _MetricItem(value: '2', label: '关注')),
