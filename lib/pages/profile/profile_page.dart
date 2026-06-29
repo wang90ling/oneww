@@ -156,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 10, 16, 10),
+                      padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
                       child: _ProfileHeader(
                         name: name,
                         userId: userId,
@@ -411,8 +411,8 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(0, 20, 0, 10),
+    /*  decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -426,16 +426,16 @@ class _ProfileHeader extends StatelessWidget {
             offset: const Offset(0, 12),
           ),
         ],
-      ),
+      ),*/
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2.2),
@@ -452,7 +452,7 @@ class _ProfileHeader extends StatelessWidget {
                       ? Image.network(
                           avatar,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _avatarFallback(),
+                          errorBuilder: (_, _, _) => _avatarFallback(),
                         )
                       : _avatarFallback(),
                 ),
@@ -470,7 +470,7 @@ class _ProfileHeader extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 19,
+                              fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF232323),
                               height: 1.05,
@@ -502,7 +502,7 @@ class _ProfileHeader extends StatelessWidget {
                         Text(
                           'ID:$userId',
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: Color(0xFF7D7D7D),
                             fontWeight: FontWeight.w600,
                           ),
@@ -511,7 +511,7 @@ class _ProfileHeader extends StatelessWidget {
                         const Icon(Icons.copy_rounded, size: 14, color: Color(0xFF7D7D7D)),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Color(0xFF4DBFA8), Color(0xFF2FA7A1)],
@@ -522,8 +522,8 @@ class _ProfileHeader extends StatelessWidget {
                             'Lv.$level',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -534,7 +534,6 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
           /*Row(
             children: const [
               Expanded(child: _MetricItem(value: '2', label: '关注')),
@@ -587,7 +586,7 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
           Expanded(child: _MetricItem(value: followCount, label: '关注')),
@@ -617,7 +616,7 @@ class _QuickActionsCard extends StatelessWidget {
         children: [
           Expanded(
             child: _ActionItem(
-              icon: Icons.receipt_long_rounded,
+              iconAssetPath: 'assets/images/ic_me_ser_jdjl.webp',
               label: '订单',
               gradient: const [Color(0xFFFF7BC1), Color(0xFFFF5C8A)],
               onTap: onOrdersTap,
@@ -625,7 +624,7 @@ class _QuickActionsCard extends StatelessWidget {
           ),
           Expanded(
             child: _ActionItem(
-              icon: Icons.confirmation_num_rounded,
+              iconAssetPath: 'assets/images/ic_me_yhq.webp',
               label: '优惠券',
               gradient: const [Color(0xFF5C8DFF), Color(0xFF7A5CFF)],
               onTap: onCouponsTap,
@@ -633,7 +632,7 @@ class _QuickActionsCard extends StatelessWidget {
           ),
           Expanded(
             child: _ActionItem(
-              icon: Icons.account_balance_wallet_rounded,
+              iconAssetPath: 'assets/images/ic_me_qb.webp',
               label: '钱包',
               gradient: const [Color(0xFFB05CFF), Color(0xFFFF7AD9)],
               onTap: onWalletTap,
@@ -647,31 +646,56 @@ class _QuickActionsCard extends StatelessWidget {
 
 class _ActionItem extends StatelessWidget {
   const _ActionItem({
-    required this.icon,
     required this.label,
     required this.gradient,
     required this.onTap,
-  });
+    this.icon,
+    this.iconAssetPath,
+  }) : assert(icon != null || iconAssetPath != null,
+            'icon 和 iconAssetPath 必须至少提供一个');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAssetPath;
   final String label;
   final List<Color> gradient;
   final VoidCallback onTap;
+
+  Widget _buildIcon() {
+    const iconSize = 22.0;
+    const iconColor = Colors.white;
+
+    if (iconAssetPath != null) {
+      return Image.asset(
+        iconAssetPath!,
+        width: iconSize,
+        height: iconSize,
+        color: iconColor,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => const Icon(
+          Icons.error_outline_rounded,
+          size: iconSize,
+          color: iconColor,
+        ),
+      );
+    }
+
+    return Icon(icon!, size: iconSize, color: iconColor);
+  }
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: gradient),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
                   color: gradient.first.withValues(alpha: 0.22),
@@ -680,7 +704,7 @@ class _ActionItem extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(icon, color: Colors.white, size: 26),
+            child: Center(child: _buildIcon()),
           ),
           const SizedBox(height: 8),
           Text(
@@ -706,14 +730,14 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
               color: Color(0xFF222222),
             ),
@@ -742,6 +766,7 @@ class _ServiceGrid extends StatelessWidget {
           width: (MediaQuery.of(context).size.width - 32 - 24) / 4,
           child: _ServiceItem(
             icon: item.icon,
+            iconAssetPath: item.iconAssetPath,
             label: item.label,
             gradient: item.gradient,
             onTap: item.onTap,
@@ -755,13 +780,16 @@ class _ServiceGrid extends StatelessWidget {
 
 class _ServiceItemData {
   const _ServiceItemData({
-    required this.icon,
     required this.label,
     required this.onTap,
+    this.icon,
+    this.iconAssetPath,
     this.gradient,
-  });
+  }) : assert(icon != null || iconAssetPath != null,
+            'icon 和 iconAssetPath 必须至少提供一个');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAssetPath;
   final String label;
   final VoidCallback onTap;
   final List<Color>? gradient;
@@ -769,22 +797,50 @@ class _ServiceItemData {
 
 class _ServiceItem extends StatelessWidget {
   const _ServiceItem({
-    required this.icon,
     required this.label,
     required this.onTap,
+    this.icon,
+    this.iconAssetPath,
     this.gradient,
     this.compact = false,
-  });
+  }) : assert(icon != null || iconAssetPath != null,
+            'icon 和 iconAssetPath 必须至少提供一个');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAssetPath;
   final String label;
   final VoidCallback onTap;
   final List<Color>? gradient;
   final bool compact;
 
+  Widget _buildIcon(BuildContext context) {
+    final iconSize = compact ? 25.0 : 28.0;
+    final iconColor = gradient == null ? const Color(0xFF5A5A5A) : Colors.white;
+
+    if (iconAssetPath != null) {
+      return Image.asset(
+        iconAssetPath!,
+        width: iconSize,
+        height: iconSize,
+        color: iconColor,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.error_outline_rounded,
+          size: iconSize,
+          color: iconColor,
+        ),
+      );
+    }
+
+    return Icon(
+      icon!,
+      size: iconSize,
+      color: iconColor,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final iconSize = compact ? 25.0 : 28.0;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -799,11 +855,7 @@ class _ServiceItem extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: gradient == null ? null : LinearGradient(colors: gradient!),
             ),
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: gradient == null ? const Color(0xFF5A5A5A) : Colors.white,
-            ),
+            child: Center(child: _buildIcon(context)),
           ),
           const SizedBox(height: 8),
           Text(
