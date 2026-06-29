@@ -15,6 +15,7 @@ import '../../models/query_dispatch_rooms_by_heat_request_entity.dart';
 import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
+import '../../models/user_detail_response_entity.dart';
 import '../../models/wan_article_entity.dart';
 import '../../utils/network_endpoints.dart';
 import '../helpers/app_logger.dart';
@@ -403,6 +404,30 @@ class ApiService {
       ..data.records = <QueryDispatchRoomsByHeatResponseDataRecords>[];
     return fallback;
   }
+
+
+  //我的模块，用户信息接口对接
+  Future<UserDetailResponseEntity> getUserInfo() async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getUserInfo}',
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
+
+    final data = response['data'];
+    AppLogger.info('getAccompanyCategoryDetail data:$data', tag: 'wangling');
+    if (data is Map<String, dynamic>) {
+      return UserDetailResponseEntity.fromJson(response);
+    }
+    throw const FormatException('Invalid accompany category detail response');
+  }
+
+
+
+
 
   static String? _sanitizeText(String? value) {
     if (value == null) return null;

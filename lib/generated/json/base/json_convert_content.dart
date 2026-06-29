@@ -12,6 +12,7 @@ import 'package:oneww/models/playroom_by_hot_request.dart';
 import 'package:oneww/models/post_list_response_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_request_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_response_entity.dart';
+import 'package:oneww/models/user_detail_response_entity.dart';
 
 JsonConvert jsonConvert = JsonConvert();
 
@@ -928,6 +929,144 @@ class JsonConvert {
           QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges
               .fromJson(e)).toList() as M;
     }
+    if (<UserDetailResponseEntity>[] is M) {
+      return data.map<UserDetailResponseEntity>((Map<String, dynamic> e) =>
+          UserDetailResponseEntity.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseData>[] is M) {
+      return data.map<UserDetailResponseData>((Map<String, dynamic> e) =>
+          UserDetailResponseData.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseDataRoomLevelConfigDto>[] is M) {
+      return data.map<UserDetailResponseDataRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataRoomLevelConfigDto.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseDataNobleLevelDto>[] is M) {
+      return data.map<UserDetailResponseDataNobleLevelDto>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataNobleLevelDto.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseDataNobleLevelDtoUserCurrent>[] is M) {
+      return data
+          .map<UserDetailResponseDataNobleLevelDtoUserCurrent>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataNobleLevelDtoUserCurrent.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataNobleLevelDtoLevelBase>[] is M) {
+      return data
+          .map<UserDetailResponseDataNobleLevelDtoLevelBase>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataNobleLevelDtoLevelBase.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataNobleLevelDtoPurchaseRecord>[] is M) {
+      return data
+          .map<UserDetailResponseDataNobleLevelDtoPurchaseRecord>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataNobleLevelDtoPurchaseRecord.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataNobleLevelDtoPrivileges>[] is M) {
+      return data
+          .map<UserDetailResponseDataNobleLevelDtoPrivileges>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataNobleLevelDtoPrivileges.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataInterestLabel>[] is M) {
+      return data.map<UserDetailResponseDataInterestLabel>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataInterestLabel.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDto>[] is M) {
+      return data.map<UserDetailResponseDataUserPropDetailDto>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDto.fromJson(e)).toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoChatBubble>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoChatBubble>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoChatBubble.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoAvatarFrame>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoAvatarFrame>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoAvatarFrame.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoLevelMedal>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoLevelMedal>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoLevelMedal.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoEntranceEffect>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoEntranceEffect>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoEntranceEffect.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoCustomNickname>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoCustomNickname>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoCustomNickname.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoHomepageEffect>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoHomepageEffect>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoHomepageEffect.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoNameplate>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoNameplate>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoNameplate.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoMount>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoMount>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoMount.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoColorfulText>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoColorfulText>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoColorfulText.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoRoomWallpaper>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoRoomWallpaper>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoRoomWallpaper.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataUserPropDetailDtoNobleCard>[] is M) {
+      return data
+          .map<UserDetailResponseDataUserPropDetailDtoNobleCard>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataUserPropDetailDtoNobleCard.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserDetailResponseDataGuardianMedal>[] is M) {
+      return data.map<UserDetailResponseDataGuardianMedal>((
+          Map<String, dynamic> e) =>
+          UserDetailResponseDataGuardianMedal.fromJson(e)).toList() as M;
+    }
 
     debugPrint("$M not found");
 
@@ -1237,6 +1376,54 @@ class JsonConvertClassCollection {
     (QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges)
         .toString(): QueryDispatchRoomsByHeatResponseDataRecordsOwnerNobleLevelDtoPrivileges
         .fromJson,
+    (UserDetailResponseEntity).toString(): UserDetailResponseEntity.fromJson,
+    (UserDetailResponseData).toString(): UserDetailResponseData.fromJson,
+    (UserDetailResponseDataRoomLevelConfigDto)
+        .toString(): UserDetailResponseDataRoomLevelConfigDto.fromJson,
+    (UserDetailResponseDataNobleLevelDto)
+        .toString(): UserDetailResponseDataNobleLevelDto.fromJson,
+    (UserDetailResponseDataNobleLevelDtoUserCurrent)
+        .toString(): UserDetailResponseDataNobleLevelDtoUserCurrent.fromJson,
+    (UserDetailResponseDataNobleLevelDtoLevelBase)
+        .toString(): UserDetailResponseDataNobleLevelDtoLevelBase.fromJson,
+    (UserDetailResponseDataNobleLevelDtoPurchaseRecord)
+        .toString(): UserDetailResponseDataNobleLevelDtoPurchaseRecord.fromJson,
+    (UserDetailResponseDataNobleLevelDtoPrivileges)
+        .toString(): UserDetailResponseDataNobleLevelDtoPrivileges.fromJson,
+    (UserDetailResponseDataInterestLabel)
+        .toString(): UserDetailResponseDataInterestLabel.fromJson,
+    (UserDetailResponseDataUserPropDetailDto)
+        .toString(): UserDetailResponseDataUserPropDetailDto.fromJson,
+    (UserDetailResponseDataUserPropDetailDtoChatBubble)
+        .toString(): UserDetailResponseDataUserPropDetailDtoChatBubble.fromJson,
+    (UserDetailResponseDataUserPropDetailDtoAvatarFrame)
+        .toString(): UserDetailResponseDataUserPropDetailDtoAvatarFrame
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoLevelMedal)
+        .toString(): UserDetailResponseDataUserPropDetailDtoLevelMedal.fromJson,
+    (UserDetailResponseDataUserPropDetailDtoEntranceEffect)
+        .toString(): UserDetailResponseDataUserPropDetailDtoEntranceEffect
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoCustomNickname)
+        .toString(): UserDetailResponseDataUserPropDetailDtoCustomNickname
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoHomepageEffect)
+        .toString(): UserDetailResponseDataUserPropDetailDtoHomepageEffect
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoNameplate)
+        .toString(): UserDetailResponseDataUserPropDetailDtoNameplate.fromJson,
+    (UserDetailResponseDataUserPropDetailDtoMount)
+        .toString(): UserDetailResponseDataUserPropDetailDtoMount.fromJson,
+    (UserDetailResponseDataUserPropDetailDtoColorfulText)
+        .toString(): UserDetailResponseDataUserPropDetailDtoColorfulText
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoRoomWallpaper)
+        .toString(): UserDetailResponseDataUserPropDetailDtoRoomWallpaper
+        .fromJson,
+    (UserDetailResponseDataUserPropDetailDtoNobleCard)
+        .toString(): UserDetailResponseDataUserPropDetailDtoNobleCard.fromJson,
+    (UserDetailResponseDataGuardianMedal)
+        .toString(): UserDetailResponseDataGuardianMedal.fromJson,
   };
 
   bool containsKey(String type) {

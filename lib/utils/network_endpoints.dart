@@ -24,4 +24,7 @@ class NetworkEndpoints {
   static const String getDetailInfo = '/accompany/detailInfo?userId=';
   //陪玩分类详情
   static const String getAccompanyCategoryDetail = '/accompany/accompanyCategoryDetail?categoryId=';
+
+  ///获取个人信息详情
+  static const String getUserInfo = '/user/detail';
 }
