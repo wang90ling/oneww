@@ -201,7 +201,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ServiceGrid(
                             items: [
                               _ServiceItemData(
-                                icon: Icons.checkroom_outlined,
+                                iconAssetPath: 'assets/images/ic_me_ser_zbzx.webp',
                                 label: '装扮中心',
                                 gradient: const [Color(0xFF7A5CFF), Color(0xFFB06BFF)],
                                 onTap: () => _openFeaturePage(
@@ -211,7 +211,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               _ServiceItemData(
-                                icon: Icons.auto_awesome_outlined,
+                                iconAssetPath: 'assets/images/ic_me_ser_pwrz.webp',
                                 label: '搭子入驻',
                                 gradient: const [Color(0xFFFF5FA2), Color(0xFFFF7D76)],
                                 onTap: () => _openFeaturePage(
@@ -221,7 +221,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               _ServiceItemData(
-                                icon: Icons.home_work_outlined,
+                                iconAssetPath: 'assets/images/ic_me_ser_wdfj.webp',
                                 label: '我的房间',
                                 gradient: const [Color(0xFFFF62A7), Color(0xFFFF8B7A)],
                                 onTap: () => _openFeaturePage(
@@ -231,7 +231,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               _ServiceItemData(
-                                icon: Icons.workspace_premium_outlined,
+                                iconAssetPath: 'assets/images/ic_me_ser_dssl.webp',
                                 label: '贵族特权',
                                 gradient: const [Color(0xFFFFB54C), Color(0xFFFF8A4A)],
                                 onTap: () => _openFeaturePage(
@@ -256,7 +256,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ServiceGrid(
                             items: [
                               _ServiceItemData(
-                                icon: Icons.headset_mic_outlined,
+                                iconAssetPath: 'assets/images/ic_me_helper_kf.webp',
                                 label: '联系客服',
                                 onTap: () => _openFeaturePage(
                                   title: '联系客服',
@@ -265,7 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               _ServiceItemData(
-                                icon: Icons.report_gmailerrorred_outlined,
+                                iconAssetPath: 'assets/images/ic_me_helper_jb.webp',
                                 label: '举报记录',
                                 onTap: () => _openFeaturePage(
                                   title: '举报记录',
@@ -274,17 +274,17 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               _ServiceItemData(
-                                icon: Icons.help_outline_rounded,
+                                iconAssetPath: 'assets/images/ic_me_helper_center.webp',
                                 label: '帮助中心',
                                 onTap: () => _pushPage(const HelpCenterPage()),
                               ),
                               _ServiceItemData(
-                                icon: Icons.settings_outlined,
+                                iconAssetPath: 'assets/images/ic_me_helper_setting.webp',
                                 label: '设置',
                                 onTap: () => _pushPage(const SettingsPage()),
                               ),
                               _ServiceItemData(
-                                icon: Icons.support_agent_rounded,
+                                iconAssetPath: 'assets/images/ic_me_helper_kf.webp',
                                 label: '专属客服',
                                 onTap: () => _openFeaturePage(
                                   title: '专属客服',
@@ -616,7 +616,7 @@ class _QuickActionsCard extends StatelessWidget {
         children: [
           Expanded(
             child: _ActionItem(
-              iconAssetPath: 'assets/images/ic_me_ser_jdjl.webp',
+              iconAssetPath: 'assets/images/ic_me_dd.webp',
               label: '订单',
               gradient: const [Color(0xFFFF7BC1), Color(0xFFFF5C8A)],
               onTap: onOrdersTap,
@@ -661,7 +661,7 @@ class _ActionItem extends StatelessWidget {
   final VoidCallback onTap;
 
   Widget _buildIcon() {
-    const iconSize = 22.0;
+    const iconSize = 32.0;
     const iconColor = Colors.white;
 
     if (iconAssetPath != null) {
@@ -669,7 +669,7 @@ class _ActionItem extends StatelessWidget {
         iconAssetPath!,
         width: iconSize,
         height: iconSize,
-        color: iconColor,
+        //color: iconColor,
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) => const Icon(
           Icons.error_outline_rounded,
@@ -690,7 +690,8 @@ class _ActionItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          Center(child: _buildIcon()),
+       /*   Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
@@ -705,8 +706,8 @@ class _ActionItem extends StatelessWidget {
               ],
             ),
             child: Center(child: _buildIcon()),
-          ),
-          const SizedBox(height: 8),
+          ),*/
+          const SizedBox(height: 5),
           Text(
             label,
             style: const TextStyle(
@@ -814,7 +815,7 @@ class _ServiceItem extends StatelessWidget {
   final bool compact;
 
   Widget _buildIcon(BuildContext context) {
-    final iconSize = compact ? 25.0 : 28.0;
+    final iconSize = 32.0;
     final iconColor = gradient == null ? const Color(0xFF5A5A5A) : Colors.white;
 
     if (iconAssetPath != null) {
@@ -822,9 +823,9 @@ class _ServiceItem extends StatelessWidget {
         iconAssetPath!,
         width: iconSize,
         height: iconSize,
-        color: iconColor,
+        //color: iconColor,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Icon(
+        errorBuilder: (_, _, _) => Icon(
           Icons.error_outline_rounded,
           size: iconSize,
           color: iconColor,
@@ -847,7 +848,8 @@ class _ServiceItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          Center(child: _buildIcon(context)),
+          /*Container(
             width: 46,
             height: 46,
             decoration: BoxDecoration(
@@ -856,8 +858,8 @@ class _ServiceItem extends StatelessWidget {
               gradient: gradient == null ? null : LinearGradient(colors: gradient!),
             ),
             child: Center(child: _buildIcon(context)),
-          ),
-          const SizedBox(height: 8),
+          ),*/
+          const SizedBox(height: 5),
           Text(
             label,
             textAlign: TextAlign.center,
