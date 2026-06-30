@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/helpers/auth_storage.dart';
 import '../../core/widgets/app_card.dart';
+import '../../models/user_detail_response_entity.dart';
+import '../../repositories/profile_me_repository.dart';
 import '../login/login_page.dart';
 import 'help_center_page.dart';
 import 'order_page.dart';
@@ -17,17 +19,29 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late Future<Map<String, dynamic>?> _userInfoFuture;
+  late final ProfileMeRepository _profileMeRepository;
+  late Future<UserDetailResponseEntity?> _userInfoFuture;
 
   @override
   void initState() {
     super.initState();
-    _userInfoFuture = AuthStorage.getUserInfo();
+    _profileMeRepository = ProfileMeRepository();
+    _userInfoFuture = _loadUserInfo();
+  }
+
+  Future<UserDetailResponseEntity?> _loadUserInfo() async {
+    try {
+      return await _profileMeRepository.getUserInfo();
+    } catch (error, stackTrace) {
+      debugPrint('Profile getUserInfo error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
   }
 
   void _reloadUserInfo() {
     setState(() {
-      _userInfoFuture = AuthStorage.getUserInfo();
+      _userInfoFuture = _loadUserInfo();
     });
   }
 
@@ -53,68 +67,11 @@ class _ProfilePageState extends State<ProfilePage> {
     _pushPage(_FeaturePage(title: title, subtitle: subtitle, icon: icon));
   }
 
-  void _showInfoSheet(BuildContext context, String title, String content) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2D9F3),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF222222))),
-              const SizedBox(height: 8),
-              Text(content, style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5)),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF7A5CFF),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('知道了'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _safeString(
-    Map<String, dynamic>? data,
-    List<String> keys, {
-    String fallback = '',
-  }) {
-    if (data == null) return fallback;
-    for (final key in keys) {
-      final value = data[key];
-      if (value != null && value.toString().trim().isNotEmpty) {
-        return value.toString().trim();
-      }
-    }
-    return fallback;
+  String _formatAvatarUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return '';
+    if (text.startsWith('http://') || text.startsWith('https://')) return text;
+    return text;
   }
 
   @override
@@ -135,28 +92,28 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         child: SafeArea(
           bottom: false,
-          child: FutureBuilder<Map<String, dynamic>?>(
+          child: FutureBuilder<UserDetailResponseEntity?>(
             future: _userInfoFuture,
             builder: (context, snapshot) {
-              final userInfo = snapshot.data;
-              final name = _safeString(
-                userInfo,
-                const ['name', 'nickname', 'nickName', 'userName'],
-                fallback: '热血星芒使YC...',
-              );
-              final phone = _safeString(userInfo, const ['telephone', 'phone', 'mobile']);
-              final userId = _safeString(userInfo, const ['id', 'userId', 'uid'], fallback: '1002563');
-              final level = _safeString(userInfo, const ['level', 'lv', 'userLevel'], fallback: '2');
-              final avatar = _safeString(userInfo, const ['avatar', 'headImg', 'headImgUrl', 'avatarUrl']);
-              final followCount = _safeString(userInfo, const ['followCount', 'followingCount'], fallback: '2');
-              final fanCount = _safeString(userInfo, const ['fanCount', 'fansCount'], fallback: '1');
+              final response = snapshot.data;
+              final userInfo = response?.data;
+              final nickName = userInfo?.nickName ?? '';
+              final realName = userInfo?.name ?? '';
+              final displayName = nickName.trim().isNotEmpty ? nickName.trim() : realName.trim();
+              final name = displayName.isNotEmpty ? displayName : '热血星芒使YC...';
+              final phone = (userInfo?.telephone ?? '').trim();
+              final userId = userInfo?.userNo.toString() ?? '1002563';
+              final level = userInfo?.level.toString() ?? '2';
+              final avatar = _formatAvatarUrl(userInfo?.avatar);
+              final followCount = '2';
+              final fanCount = '1';
 
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                      padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 0),
                       child: _ProfileHeader(
                         name: name,
                         userId: userId,
