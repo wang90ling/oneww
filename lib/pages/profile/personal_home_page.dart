@@ -32,7 +32,7 @@ class PersonalHomePage extends StatelessWidget {
               elevation: 0,
               pinned: true,
               stretch: true,
-              expandedHeight: 410,
+              expandedHeight: 310,
               leading: Padding(
                 padding: const EdgeInsets.only(left: 16),
                 child: _CircleActionButton(
@@ -70,7 +70,7 @@ class PersonalHomePage extends StatelessWidget {
               child: Container(
                 color: const Color(0xFFF6F3FB),
                 child: const Padding(
-                  padding: EdgeInsets.only(top: 8, left: 18, right: 18),
+                  padding: EdgeInsets.only(top: 2, left: 10, right: 10),
                   child: _ProfileTabs(),
                 ),
               ),
@@ -274,14 +274,14 @@ class _ProfileCover extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
                               height: 1.05,
                             ),
                           ),
                           const SizedBox(height: 10),
                           Wrap(
-                            spacing: 8,
+                            spacing: 5,
                             runSpacing: 8,
                             children: [
                               _TagChip(text: location, icon: Icons.location_on_outlined),
@@ -299,7 +299,7 @@ class _ProfileCover extends StatelessWidget {
                   bio,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.92),
-                    fontSize: 15,
+                    fontSize: 13,
                     height: 1.45,
                     fontWeight: FontWeight.w500,
                   ),
@@ -346,7 +346,7 @@ class _ProfileTabs extends StatelessWidget {
         isScrollable: true,
         dividerColor: Colors.transparent,
         indicatorColor: Color(0xFF7A5CFF),
-        indicatorWeight: 3,
+        indicatorWeight: 2,
         labelColor: Color(0xFF222222),
         unselectedLabelColor: Color(0xFF9A9AA3),
         labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
@@ -812,7 +812,7 @@ class _CircleActionButton extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.18),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
+        child: Icon(icon, color: Colors.white, size: 18),
       ),
     );
   }
@@ -826,8 +826,8 @@ class _AvatarHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 92,
-      height: 92,
+      width: 75,
+      height: 75,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
@@ -868,7 +868,7 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
@@ -882,7 +882,7 @@ class _TagChip extends StatelessWidget {
             text,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -900,7 +900,7 @@ class _LevelBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF4ED0BA), Color(0xFF2BA8A3)]),
         borderRadius: BorderRadius.circular(999),
@@ -930,7 +930,7 @@ class _MiniAction extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(999),
