@@ -13,6 +13,8 @@ import 'package:oneww/models/post_list_response_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_request_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_response_entity.dart';
 import 'package:oneww/models/user_detail_response_entity.dart';
+import 'package:oneww/models/user_gift_wall_request_entity.dart';
+import 'package:oneww/models/user_gift_wall_response_entity.dart';
 
 JsonConvert jsonConvert = JsonConvert();
 
@@ -1067,6 +1069,75 @@ class JsonConvert {
           Map<String, dynamic> e) =>
           UserDetailResponseDataGuardianMedal.fromJson(e)).toList() as M;
     }
+    if (<UserGiftWallRequestEntity>[] is M) {
+      return data.map<UserGiftWallRequestEntity>((Map<String, dynamic> e) =>
+          UserGiftWallRequestEntity.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseEntity>[] is M) {
+      return data.map<UserGiftWallResponseEntity>((Map<String, dynamic> e) =>
+          UserGiftWallResponseEntity.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseData>[] is M) {
+      return data.map<UserGiftWallResponseData>((Map<String, dynamic> e) =>
+          UserGiftWallResponseData.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecords>[] is M) {
+      return data.map<UserGiftWallResponseDataRecords>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecords.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUser>[] is M) {
+      return data.map<UserGiftWallResponseDataRecordsGiveUser>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUser.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserRoomLevelConfigDto>[] is M) {
+      return data
+          .map<
+          UserGiftWallResponseDataRecordsGiveUserRoomLevelConfigDto>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserRoomLevelConfigDto.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserNobleLevelDto>[] is M) {
+      return data
+          .map<UserGiftWallResponseDataRecordsGiveUserNobleLevelDto>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDto.fromJson(e))
+          .toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoUserCurrent>[
+    ] is M) {
+      return data.map<
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoUserCurrent>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoUserCurrent
+              .fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoLevelBase>[
+    ] is M) {
+      return data.map<
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoLevelBase>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoLevelBase
+              .fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPurchaseRecord>[
+    ] is M) {
+      return data.map<
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPurchaseRecord>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPurchaseRecord
+              .fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPrivileges>[
+    ] is M) {
+      return data.map<
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPrivileges>((
+          Map<String, dynamic> e) =>
+          UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPrivileges
+              .fromJson(e)).toList() as M;
+    }
 
     debugPrint("$M not found");
 
@@ -1424,6 +1495,32 @@ class JsonConvertClassCollection {
         .toString(): UserDetailResponseDataUserPropDetailDtoNobleCard.fromJson,
     (UserDetailResponseDataGuardianMedal)
         .toString(): UserDetailResponseDataGuardianMedal.fromJson,
+    (UserGiftWallRequestEntity).toString(): UserGiftWallRequestEntity.fromJson,
+    (UserGiftWallResponseEntity).toString(): UserGiftWallResponseEntity
+        .fromJson,
+    (UserGiftWallResponseData).toString(): UserGiftWallResponseData.fromJson,
+    (UserGiftWallResponseDataRecords)
+        .toString(): UserGiftWallResponseDataRecords.fromJson,
+    (UserGiftWallResponseDataRecordsGiveUser)
+        .toString(): UserGiftWallResponseDataRecordsGiveUser.fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserRoomLevelConfigDto)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserRoomLevelConfigDto
+        .fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserNobleLevelDto)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserNobleLevelDto
+        .fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoUserCurrent)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoUserCurrent
+        .fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoLevelBase)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoLevelBase
+        .fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPurchaseRecord)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPurchaseRecord
+        .fromJson,
+    (UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPrivileges)
+        .toString(): UserGiftWallResponseDataRecordsGiveUserNobleLevelDtoPrivileges
+        .fromJson,
   };
 
   bool containsKey(String type) {

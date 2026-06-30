@@ -16,6 +16,8 @@ import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
 import '../../models/user_detail_response_entity.dart';
+import '../../models/user_gift_wall_request_entity.dart';
+import '../../models/user_gift_wall_response_entity.dart';
 import '../../models/wan_article_entity.dart';
 import '../../utils/network_endpoints.dart';
 import '../helpers/app_logger.dart';
@@ -426,7 +428,44 @@ class ApiService {
   }
 
 
+  ///指定用户的礼物墙
+  Future<UserGiftWallResponseEntity> giftUserGiftWall(
+      UserGiftWallRequestEntity req,
+      ) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}/gift/userGiftWall',
+    );
+    AppLogger.info('派单厅列表: $uri, body: ${req.toJson()}', tag: 'ApiService');
+    final response = await _client.postJson(
+      uri,
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-device': 'APP',
+        if (token != null && token.isNotEmpty) 'authorization': token,
+      },
+      body: req.toJson(),
+    );
 
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final records = data['records'];
+      if (records is List && records.isNotEmpty) {
+        AppLogger.info('派单厅第一条原始数据: ${records.first}', tag: 'wangling');
+      }
+      return UserGiftWallResponseEntity.fromJson(response);
+    }
+
+    final fallback = UserGiftWallResponseEntity()
+      ..data = UserGiftWallResponseData()
+      ..data.pageNo = 1
+      ..data.pageSize = 20
+      ..data.pages = 0
+      ..data.total = 0
+      ..data.records = <UserGiftWallResponseDataRecords>[];
+    return fallback;
+  }
 
 
   static String? _sanitizeText(String? value) {
