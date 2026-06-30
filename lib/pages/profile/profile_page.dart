@@ -5,8 +5,10 @@ import '../../core/widgets/app_card.dart';
 import '../../models/user_detail_response_entity.dart';
 import '../../repositories/profile_me_repository.dart';
 import '../login/login_page.dart';
+import 'cp_page.dart';
 import 'help_center_page.dart';
 import 'order_page.dart';
+import 'personal_home_page.dart';
 import 'settings_page.dart';
 import 'wallet_page.dart';
 
@@ -119,10 +121,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         userId: userId,
                         level: level,
                         avatar: avatar,
-                        onPersonalHomeTap: () => _openFeaturePage(
-                          title: '个人主页',
-                          subtitle: '这里可展示你的主页、作品与动态',
-                          icon: Icons.person_rounded,
+                        onPersonalHomeTap: () => _pushPage(
+                          PersonalHomePage(userInfo: userInfo),
                         ),
                       ),
                     ),
@@ -139,11 +139,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _QuickActionsCard(
                         onOrdersTap: () => _pushPage(const OrderPage()),
-                        onCouponsTap: () => _openFeaturePage(
-                          title: '优惠券',
-                          subtitle: '这里可展示可用优惠券、领取记录和活动权益',
-                          icon: Icons.confirmation_num_rounded,
-                        ),
+                        onCouponsTap: () => _pushPage(CpPage(userInfo: userInfo)),
                         onWalletTap: () => _pushPage(const WalletPage()),
                       ),
                     ),

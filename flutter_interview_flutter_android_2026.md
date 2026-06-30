@@ -70,6 +70,363 @@ Flutter 你知道哪些状态管理方案？怎么选？
 ### 标准回答
 常见方案有 setState、Provider、Riverpod、Bloc、GetX、MobX 等。小型页面可以用 setState；中小型项目常用 Provider；复杂业务和状态流建议用 Bloc 或 Riverpod。选型的关键是看项目复杂度、团队熟悉度和维护成本。
 
+### 详细分析
+
+#### 一、方案对比
+
+| 方案 | 原理 | 优点 | 缺点 | 适用场景 |
+|------|------|------|------|----------|
+| **setState** | Flutter 内置状态管理 | 零依赖、简单直观 | 状态局限在 Widget 内、重建范围难控制 | 小型组件、简单页面 |
+| **Provider** | InheritedWidget + ChangeNotifier | 学习成本低、社区成熟、适合中小型项目 | 层级深、状态流不够清晰 | 中小型项目、入门项目 |
+| **Riverpod** | Provider 的改进版，无上下文依赖 | 编译安全、无 Context 限制、可组合 | 学习曲线略陡 | 中大型项目、追求类型安全 |
+| **Bloc** | Stream + 事件驱动 | 状态流清晰、可测试性强、适合复杂业务 | 代码量大、学习成本高 | 复杂业务、需要严格状态流 |
+| **GetX** | Controller + 依赖注入 | 功能全面、语法简洁 | 过于强大、容易滥用 | 快速开发、中小型项目 |
+| **MobX** | 响应式编程、观察者模式 | 声明式、自动追踪依赖 | 需要代码生成、概念较新 | 响应式编程爱好者、中大型项目 |
+
+#### 二、代码示例
+
+##### 1. setState（最简单的方案）
+
+```dart
+class CounterPage extends StatefulWidget {
+  const CounterPage({super.key});
+
+  @override
+  State<CounterPage> createState() => _CounterPageState();
+}
+
+class _CounterPageState extends State<CounterPage> {
+  int _count = 0;
+
+  void _increment() {
+    setState(() {
+      _count++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Text('Count: $_count'),
+            ElevatedButton(
+              onPressed: _increment,
+              child: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：状态和 UI 紧耦合，状态无法跨组件共享。
+
+---
+
+##### 2. Provider（基于 InheritedWidget）
+
+**第一步：创建 ChangeNotifier**
+```dart
+class CounterProvider extends ChangeNotifier {
+  int _count = 0;
+  int get count => _count;
+
+  void increment() {
+    _count++;
+    notifyListeners();
+  }
+}
+```
+
+**第二步：在顶层注入 Provider**
+```dart
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CounterProvider(),
+      child: const MyApp(),
+    ),
+  );
+}
+```
+
+**第三步：在组件中使用**
+```dart
+class CounterPage extends StatelessWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Consumer<CounterProvider>(
+              builder: (context, provider, child) {
+                return Text('Count: ${provider.count}');
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.read<CounterProvider>().increment();
+              },
+              child: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：状态可以跨组件共享，通过 `Consumer` 精确控制重建范围。
+
+---
+
+##### 3. Riverpod（Provider 的改进版）
+
+**第一步：创建 Provider**
+```dart
+final counterProvider = StateNotifierProvider<CounterNotifier, int>((ref) {
+  return CounterNotifier();
+});
+
+class CounterNotifier extends StateNotifier<int> {
+  CounterNotifier() : super(0);
+
+  void increment() {
+    state++;
+  }
+}
+```
+
+**第二步：在顶层配置 ProviderScope**
+```dart
+void main() {
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
+}
+```
+
+**第三步：在组件中使用**
+```dart
+class CounterPage extends ConsumerWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(counterProvider);
+    
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Text('Count: $count'),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(counterProvider.notifier).increment();
+              },
+              child: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：无 Context 依赖，编译时安全，支持自动清理。
+
+---
+
+##### 4. Bloc（事件驱动）
+
+**第一步：定义事件和状态**
+```dart
+// 事件
+abstract class CounterEvent {}
+class IncrementEvent extends CounterEvent {}
+class DecrementEvent extends CounterEvent {}
+
+// 状态
+class CounterState {
+  final int count;
+  CounterState({required this.count});
+}
+```
+
+**第二步：创建 Bloc**
+```dart
+class CounterBloc extends Bloc<CounterEvent, CounterState> {
+  CounterBloc() : super(CounterState(count: 0)) {
+    on<IncrementEvent>((event, emit) {
+      emit(CounterState(count: state.count + 1));
+    });
+    on<DecrementEvent>((event, emit) {
+      emit(CounterState(count: state.count - 1));
+    });
+  }
+}
+```
+
+**第三步：在组件中使用**
+```dart
+class CounterPage extends StatelessWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => CounterBloc(),
+      child: Scaffold(
+        body: Center(
+          child: Column(
+            children: [
+              BlocBuilder<CounterBloc, CounterState>(
+                builder: (context, state) {
+                  return Text('Count: ${state.count}');
+                },
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<CounterBloc>().add(IncrementEvent());
+                },
+                child: const Text('Increment'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：状态转换清晰可追踪，适合复杂业务逻辑。
+
+---
+
+##### 5. GetX（全能型方案）
+
+**第一步：创建 Controller**
+```dart
+class CounterController extends GetxController {
+  final count = 0.obs;
+
+  void increment() {
+    count.value++;
+  }
+}
+```
+
+**第二步：在组件中使用**
+```dart
+class CounterPage extends StatelessWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.put(CounterController());
+    
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Obx(() => Text('Count: ${controller.count.value}')),
+            ElevatedButton(
+              onPressed: controller.increment,
+              child: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：语法简洁，集状态管理、路由、依赖注入于一体。
+
+---
+
+##### 6. MobX（响应式）
+
+**第一步：创建 Store**
+```dart
+part 'counter_store.g.dart';
+
+class CounterStore = _CounterStore with _$CounterStore;
+
+abstract class _CounterStore with Store {
+  @observable
+  int count = 0;
+
+  @action
+  void increment() {
+    count++;
+  }
+}
+```
+
+**第二步：在组件中使用**
+```dart
+class CounterPage extends StatelessWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = Provider.of<CounterStore>(context);
+    
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Observer(
+              builder: (_) => Text('Count: ${store.count}'),
+            ),
+            ElevatedButton(
+              onPressed: store.increment,
+              child: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**特点**：声明式编程，自动追踪依赖，需要代码生成。
+
+#### 三、选型建议
+
+```
+项目复杂度 → 推荐方案
+───────────────────────
+简单组件   → setState
+小型页面   → setState / Provider
+中小型项目 → Provider / GetX
+中大型项目 → Riverpod / Bloc
+复杂业务   → Bloc / Riverpod
+响应式偏好 → MobX
+快速开发   → GetX
+```
+
+**选型关键因素**：
+1. **项目规模**：小项目用简单方案，大项目用规范方案
+2. **团队熟悉度**：选择团队已经掌握的方案，降低学习成本
+3. **维护成本**：考虑长期维护时的可测试性和可扩展性
+4. **状态复杂度**：状态流转多、异步操作复杂时，优先选 Bloc 或 Riverpod
+
 ---
 
 ## 7. Provider 的优缺点是什么？
