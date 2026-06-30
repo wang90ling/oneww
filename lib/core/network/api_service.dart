@@ -436,7 +436,7 @@ class ApiService {
     final uri = Uri.parse(
       '${NetworkEndpoints.appBaseUrl}/gift/userGiftWall',
     );
-    AppLogger.info('派单厅列表: $uri, body: ${req.toJson()}', tag: 'ApiService');
+    AppLogger.info('指定用户的礼物墙: $uri, body: ${req.toJson()}', tag: 'ApiService');
     final response = await _client.postJson(
       uri,
       headers: <String, String>{
@@ -452,7 +452,7 @@ class ApiService {
     if (data is Map<String, dynamic>) {
       final records = data['records'];
       if (records is List && records.isNotEmpty) {
-        AppLogger.info('派单厅第一条原始数据: ${records.first}', tag: 'wangling');
+        AppLogger.info('指定用户的礼物墙第一条原始数据: ${records.first}', tag: 'wangling');
       }
       return UserGiftWallResponseEntity.fromJson(response);
     }
