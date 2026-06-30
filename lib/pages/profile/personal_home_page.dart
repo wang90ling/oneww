@@ -2,24 +2,88 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/app_card.dart';
 import '../../models/user_detail_response_entity.dart';
+import '../../models/user_gift_wall_response_entity.dart';
+import '../../viewmodels/profile_me_view_model.dart';
 
-class PersonalHomePage extends StatelessWidget {
+class PersonalHomePage extends StatefulWidget {
   const PersonalHomePage({super.key, this.userInfo});
 
   final UserDetailResponseData? userInfo;
 
   @override
+  State<PersonalHomePage> createState() => _PersonalHomePageState();
+}
+
+class _PersonalHomePageState extends State<PersonalHomePage> {
+  late final ProfileMeViewModel _viewModel;
+  late Future<UserGiftWallResponseEntity?> _giftWallFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = ProfileMeViewModel();
+    _giftWallFuture = _loadGiftWall();
+  }
+
+  Future<UserGiftWallResponseEntity?> _loadGiftWall() async {
+    final userId = _giftWallUserId();
+    try {
+      return await _viewModel.giftUserGiftWall(1, 1, 20, userId);
+    } catch (error, stackTrace) {
+      debugPrint('giftUserGiftWall error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
+  }
+
+  String get _displayName {
+    final nickName = widget.userInfo?.nickName.trim() ?? '';
+    final realName = widget.userInfo?.name.trim() ?? '';
+    if (nickName.isNotEmpty) return nickName;
+    if (realName.isNotEmpty) return realName;
+    return '热血星芒使YCvUd';
+  }
+
+  String _formatAvatarUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return '';
+    if (text.startsWith('http://') || text.startsWith('https://')) return text;
+    return text;
+  }
+
+  String _nonEmptyOrFallback(String? value, String fallback) {
+    final text = value?.trim() ?? '';
+    return text.isNotEmpty ? text : fallback;
+  }
+
+  String _userIdText() {
+    final userNo = widget.userInfo?.userNo.trim() ?? '';
+    if (userNo.isNotEmpty) return userNo;
+    final userId = widget.userInfo?.userId;
+    if (userId != null && userId != 0) return userId.toString();
+    return '1002563';
+  }
+
+  String _giftWallUserId() {
+    final userId = widget.userInfo?.userId;
+    if (userId != null && userId != 0) {
+      return userId.toString();
+    }
+
+    final userNo = widget.userInfo?.userNo.trim() ?? '';
+    if (userNo.isNotEmpty) return userNo;
+
+    return '';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final name = _displayName;
-    final coverUrl = _firstNonEmpty([userInfo?.coverImage, userInfo?.avatar]);
-    final avatarUrl = _firstNonEmpty([userInfo?.avatar, userInfo?.coverImage]);
-    final location = _nonEmptyOrFallback(userInfo?.hometown, '北京');
-    final userId = userInfo?.userNo.isNotEmpty == true
-        ? userInfo!.userNo
-        : (userInfo?.userId.toString() ?? '1002563');
-    final level = userInfo?.level.toString() ?? '2';
-    final bio = _nonEmptyOrFallback(userInfo?.introduced, '这家伙很懒，什么都没有留下~');
-    final giftCount = userInfo?.interestLabel.length ?? 63;
+    final coverUrl = _formatAvatarUrl(widget.userInfo?.coverImage);
+    final avatarUrl = _formatAvatarUrl(widget.userInfo?.avatar);
+    final location = _nonEmptyOrFallback(widget.userInfo?.hometown, '北京');
+    final userId = _userIdText();
+    final level = widget.userInfo?.level.toString() ?? '2';
+    final bio = _nonEmptyOrFallback(widget.userInfo?.introduced, '这家伙很懒，什么都没有留下~');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F3FB),
@@ -58,7 +122,7 @@ class PersonalHomePage extends StatelessWidget {
                 background: _ProfileCover(
                   coverImageUrl: coverUrl,
                   avatarUrl: avatarUrl,
-                  name: name,
+                  name: _displayName,
                   location: location,
                   userId: userId,
                   level: level,
@@ -81,31 +145,48 @@ class PersonalHomePage extends StatelessWidget {
             child: TabBarView(
               children: [
                 ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _ProfileSection(
                       title: '礼物墙',
-                      trailing: _SectionCount(countText: giftCount.toString(), totalText: '296'),
-                      child: SizedBox(
-                        height: 130,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.only(top: 8, bottom: 4),
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            final item = _giftWallItems[index % _giftWallItems.length];
-                            return _GiftWallCard(item: item);
-                          },
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
-                          itemCount: _giftWallItems.length,
-                        ),
+                      trailing: FutureBuilder<UserGiftWallResponseEntity?>(
+                        future: _giftWallFuture,
+                        builder: (context, snapshot) {
+                          final total = snapshot.data?.data.total ?? 0;
+                          return _SectionCount(countText: total.toString(), totalText: '296');
+                        },
+                      ),
+                      child: FutureBuilder<UserGiftWallResponseEntity?>(
+                        future: _giftWallFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const _GiftWallLoading();
+                          }
+                          final records = snapshot.data?.data.records ?? const <UserGiftWallResponseDataRecords>[];
+                          if (records.isEmpty) {
+                            return const _GiftWallEmpty();
+                          }
+                          return SizedBox(
+                            height: 138,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.only(top: 8, bottom: 4),
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                return _GiftWallCard(record: records[index]);
+                              },
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemCount: records.length,
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 18),
                     _ProfileSection(
                       title: 'Ta的动态',
-                      child: _EmptyDynamicsState(userName: name),
+                      child: _EmptyDynamicsState(userName: _displayName),
                     ),
                   ],
                 ),
@@ -114,7 +195,7 @@ class PersonalHomePage extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _CpSummaryCard(
-                      name: name,
+                      name: _displayName,
                       userId: userId,
                       level: level,
                       location: location,
@@ -122,8 +203,8 @@ class PersonalHomePage extends StatelessWidget {
                     const SizedBox(height: 14),
                     _ProfileSection(
                       title: '关系信息',
-                      child: Column(
-                        children: const [
+                      child: const Column(
+                        children: [
                           _RelationInfoTile(
                             title: '当前状态',
                             value: '未绑定 CP',
@@ -176,8 +257,8 @@ class PersonalHomePage extends StatelessWidget {
                     const SizedBox(height: 14),
                     _ProfileSection(
                       title: '历史记录',
-                      child: Column(
-                        children: const [
+                      child: const Column(
+                        children: [
                           _HistoryItem(title: '绑定申请', subtitle: '等待对方确认', timeText: '2026-06-29'),
                           SizedBox(height: 10),
                           _HistoryItem(title: 'CP 互动', subtitle: '暂无更多记录', timeText: '2026-06-28'),
@@ -192,14 +273,6 @@ class PersonalHomePage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String get _displayName {
-    final nickName = userInfo?.nickName.trim() ?? '';
-    final realName = userInfo?.name.trim() ?? '';
-    if (nickName.isNotEmpty) return nickName;
-    if (realName.isNotEmpty) return realName;
-    return '热血星芒使YCvUd';
   }
 }
 
@@ -421,13 +494,62 @@ class _SectionCount extends StatelessWidget {
   }
 }
 
-class _GiftWallCard extends StatelessWidget {
-  const _GiftWallCard({required this.item});
-
-  final _GiftWallItem item;
+class _GiftWallLoading extends StatelessWidget {
+  const _GiftWallLoading();
 
   @override
   Widget build(BuildContext context) {
+    return SizedBox(
+      height: 138,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemBuilder: (_, __) => Container(
+          width: 92,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemCount: 5,
+      ),
+    );
+  }
+}
+
+class _GiftWallEmpty extends StatelessWidget {
+  const _GiftWallEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 138,
+      child: Center(
+        child: Text(
+          '暂无礼物墙数据',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GiftWallCard extends StatelessWidget {
+  const _GiftWallCard({required this.record});
+
+  final UserGiftWallResponseDataRecords record;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = record.giftName.trim().isNotEmpty ? record.giftName.trim() : '礼物';
+    final imageUrl = record.showImage.trim();
+    final colors = _giftGradientFromName(title);
+
     return Container(
       width: 92,
       decoration: BoxDecoration(
@@ -450,24 +572,43 @@ class _GiftWallCard extends StatelessWidget {
               height: 58,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(colors: item.gradient),
+                gradient: LinearGradient(colors: colors),
               ),
-              child: Center(
-                child: Text(
-                  item.shortText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    height: 1.1,
-                  ),
-                ),
+              child: ClipOval(
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            _giftShortText(title),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              height: 1.05,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          _giftShortText(title),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            height: 1.05,
+                          ),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              item.title,
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -773,7 +914,7 @@ class _HistoryItem extends StatelessWidget {
               color: const Color(0xFFF7F1FF),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.history_rounded, color: Color(0xFF7A5CFF), size: 22),
+            child: const Icon(Icons.event_note_rounded, color: Color(0xFF7A5CFF), size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -812,7 +953,7 @@ class _CircleActionButton extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.18),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 18),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -955,55 +1096,27 @@ class _MiniAction extends StatelessWidget {
   }
 }
 
-class _GiftWallItem {
-  const _GiftWallItem({
-    required this.title,
-    required this.shortText,
-    required this.gradient,
-  });
-
-  final String title;
-  final String shortText;
-  final List<Color> gradient;
+String _giftShortText(String title) {
+  if (title.contains('百万')) return '一\n百万';
+  if (title.contains('魔羯') || title.contains('摩羯')) return '魔\n羯';
+  if (title.contains('射手')) return '射\n手';
+  if (title.contains('双鱼')) return '双\n鱼';
+  if (title.length >= 2) return '${title.substring(0, 1)}\n${title.substring(1, 2)}';
+  return title;
 }
 
-final List<_GiftWallItem> _giftWallItems = [
-  const _GiftWallItem(
-    title: '魔羯座',
-    shortText: '魔\n羯',
-    gradient: [Color(0xFF6454FF), Color(0xFF9D78FF)],
-  ),
-  const _GiftWallItem(
-    title: '百万',
-    shortText: '一\n百万',
-    gradient: [Color(0xFF7EE7DB), Color(0xFF6FC0B8)],
-  ),
-  const _GiftWallItem(
-    title: '射手座',
-    shortText: '射\n手',
-    gradient: [Color(0xFFFFB574), Color(0xFFFF8A4A)],
-  ),
-  const _GiftWallItem(
-    title: '双鱼座',
-    shortText: '双\n鱼',
-    gradient: [Color(0xFF4D67F6), Color(0xFF8AA0FF)],
-  ),
-  const _GiftWallItem(
-    title: '月下漫步',
-    shortText: '月\n下',
-    gradient: [Color(0xFFF0DCAA), Color(0xFFE6B86A)],
-  ),
-];
-
-String _firstNonEmpty(List<String?> values) {
-  for (final value in values) {
-    final text = value?.trim() ?? '';
-    if (text.isNotEmpty) return text;
+List<Color> _giftGradientFromName(String title) {
+  if (title.contains('百万')) {
+    return const [Color(0xFF73DACC), Color(0xFF6EC4C0)];
   }
-  return '';
-}
-
-String _nonEmptyOrFallback(String? value, String fallback) {
-  final text = value?.trim() ?? '';
-  return text.isNotEmpty ? text : fallback;
+  if (title.contains('魔羯') || title.contains('摩羯')) {
+    return const [Color(0xFF6F59FF), Color(0xFF9B75FF)];
+  }
+  if (title.contains('射手')) {
+    return const [Color(0xFFFFB15A), Color(0xFFFF8A49)];
+  }
+  if (title.contains('双鱼')) {
+    return const [Color(0xFF4F68F6), Color(0xFF859BFF)];
+  }
+  return const [Color(0xFF7A5CFF), Color(0xFFB06BFF)];
 }

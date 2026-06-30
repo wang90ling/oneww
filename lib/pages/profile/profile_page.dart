@@ -109,6 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
               final avatar = _formatAvatarUrl(userInfo?.avatar);
               final followCount = '2';
               final fanCount = '1';
+              final cpCount = '0';
 
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -124,6 +125,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         onPersonalHomeTap: () => _pushPage(
                           PersonalHomePage(userInfo: userInfo),
                         ),
+                        onCpTap: () => _pushPage(CpPage(userInfo: userInfo)),
+                        cpCount: cpCount,
                       ),
                     ),
                   ),
@@ -353,6 +356,8 @@ class _ProfileHeader extends StatelessWidget {
     required this.level,
     required this.avatar,
     required this.onPersonalHomeTap,
+    required this.onCpTap,
+    required this.cpCount,
   });
 
   final String name;
@@ -360,6 +365,8 @@ class _ProfileHeader extends StatelessWidget {
   final String level;
   final String avatar;
   final VoidCallback onPersonalHomeTap;
+  final VoidCallback onCpTap;
+  final String cpCount;
 
   @override
   Widget build(BuildContext context) {
@@ -487,12 +494,6 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-          /*Row(
-            children: const [
-              Expanded(child: _MetricItem(value: '2', label: '关注')),
-              Expanded(child: _MetricItem(value: '1', label: '粉丝')),
-            ],
-          ),*/
         ],
       ),
     );
@@ -502,6 +503,51 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       color: Colors.white,
       child: const Icon(Icons.person_rounded, size: 34, color: Color(0xFFBFA5C8)),
+    );
+  }
+}
+
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({required this.text, required this.icon, required this.onTap});
+
+  final String text;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF7A5CFF)),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF4A4A4A),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
