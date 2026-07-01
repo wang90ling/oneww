@@ -185,7 +185,7 @@ class _PersonalHomePageState extends State<PersonalHomePage> {
                             return const _GiftWallEmpty();
                           }
                           return SizedBox(
-                            height: 138,
+                            height: 130,
                             child: ListView.separated(
                               padding: const EdgeInsets.only(top: 8, bottom: 4),
                               scrollDirection: Axis.horizontal,
@@ -193,14 +193,14 @@ class _PersonalHomePageState extends State<PersonalHomePage> {
                               itemBuilder: (context, index) {
                                 return _GiftWallCard(record: records[index]);
                               },
-                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              separatorBuilder: (_, __) => const SizedBox(width: 8),
                               itemCount: records.length,
                             ),
                           );
                         },
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 15),
                     _ProfileSection(
                       title: 'Ta的动态',
                       child: _EmptyDynamicsState(userName: _displayName),
@@ -318,9 +318,9 @@ class _ProfileCover extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         Positioned.fill(
-          child: coverImageUrl.isNotEmpty
+          child: avatarUrl.isNotEmpty
               ? Image.network(
-                  coverImageUrl,
+                  avatarUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => _coverFallback(),
                 )
@@ -575,7 +575,7 @@ class _GiftWallCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
+            blurRadius: 12,
             offset: const Offset(0, 8),
           ),
         ],
@@ -585,8 +585,8 @@ class _GiftWallCard extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              width: 58,
-              height: 58,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(colors: colors),
@@ -623,7 +623,7 @@ class _GiftWallCard extends StatelessWidget {
                       ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
             Text(
               title,
               maxLines: 1,

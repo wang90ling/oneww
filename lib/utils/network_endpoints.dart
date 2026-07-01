@@ -30,4 +30,7 @@ class NetworkEndpoints {
 
   ///获取个人信息详情
   static const String getUserInfo = '/user/detail';
+
+  ///首页的BannerList
+  static const String getBannerList = '/homePage/getBannerList';
 }

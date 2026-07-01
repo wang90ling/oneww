@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../models/accompany_category_detail_entity.dart';
 import '../../models/app_user.dart';
+import '../../models/banner_respose_entity.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_new_recommend_entity.dart';
 import '../../models/home_recommend.dart';
@@ -484,6 +485,26 @@ class ApiService {
     AppLogger.info('giftUserGiftWallLight data:$data', tag: 'wangling');
     if (data is Map<String, dynamic>) {
       return UserGiftWallLightResponseEntity.fromJson(response);
+    }
+    throw const FormatException('Invalid accompany category detail response');
+  }
+
+
+  ///首页的BannerList
+  Future<BannerResposeEntity> getBannerList() async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.getBannerList}',
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
+
+    final data = response['data'];
+    AppLogger.info('getBannerList data:$data', tag: 'wangling');
+    if (data is Map<String, dynamic>) {
+      return BannerResposeEntity.fromJson(response);
     }
     throw const FormatException('Invalid accompany category detail response');
   }

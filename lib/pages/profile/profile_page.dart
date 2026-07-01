@@ -116,7 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 0),
+                      padding: EdgeInsets.fromLTRB(16, 30, 16, 0),
                       child: _ProfileHeader(
                         name: name,
                         userId: userId,
@@ -371,7 +371,7 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(0, 20, 0, 10),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
     /*  decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,

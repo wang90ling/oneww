@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:oneww/models/accompany_category_detail_entity.dart';
 import 'package:oneww/models/article_item_entity.dart';
+import 'package:oneww/models/banner_respose_entity.dart';
 import 'package:oneww/models/home_new_recommend_entity.dart';
 import 'package:oneww/models/play_room_response_entity.dart';
 import 'package:oneww/models/playroom_by_hot_request.dart';
@@ -318,6 +319,14 @@ class JsonConvert {
     if (<ArticleItemDataDatas>[] is M) {
       return data.map<ArticleItemDataDatas>((Map<String, dynamic> e) =>
           ArticleItemDataDatas.fromJson(e)).toList() as M;
+    }
+    if (<BannerResposeEntity>[] is M) {
+      return data.map<BannerResposeEntity>((Map<String, dynamic> e) =>
+          BannerResposeEntity.fromJson(e)).toList() as M;
+    }
+    if (<BannerResposeData>[] is M) {
+      return data.map<BannerResposeData>((Map<String, dynamic> e) =>
+          BannerResposeData.fromJson(e)).toList() as M;
     }
     if (<HomeNewRecommendEntity>[] is M) {
       return data.map<HomeNewRecommendEntity>((Map<String, dynamic> e) =>
@@ -1231,6 +1240,8 @@ class JsonConvertClassCollection {
     (ArticleItemEntity).toString(): ArticleItemEntity.fromJson,
     (ArticleItemData).toString(): ArticleItemData.fromJson,
     (ArticleItemDataDatas).toString(): ArticleItemDataDatas.fromJson,
+    (BannerResposeEntity).toString(): BannerResposeEntity.fromJson,
+    (BannerResposeData).toString(): BannerResposeData.fromJson,
     (HomeNewRecommendEntity).toString(): HomeNewRecommendEntity.fromJson,
     (HomeNewRecommendData).toString(): HomeNewRecommendData.fromJson,
     (HomeNewRecommendDataRecords).toString(): HomeNewRecommendDataRecords
