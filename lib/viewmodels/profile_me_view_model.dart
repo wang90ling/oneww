@@ -3,6 +3,7 @@ import 'package:oneww/core/helpers/app_logger.dart';
 import 'package:oneww/core/network/network_client.dart';
 import 'package:oneww/repositories/profile_me_repository.dart';
 import '../models/user_detail_response_entity.dart';
+import '../models/user_gift_wall_light_response_entity.dart';
 import '../models/user_gift_wall_response_entity.dart';
 import 'view_state.dart';
 
@@ -22,6 +23,7 @@ class ProfileMeViewModel extends ChangeNotifier {
   UserDetailResponseEntity? _userDetailResponseEntity;
 
   UserGiftWallResponseEntity? _userGiftWallResponseEntity;
+  UserGiftWallLightResponseEntity? _userGiftWallLightResponseEntity;
 
   Future<UserDetailResponseEntity?> getUserInfo() async {
     _status = ViewStatus.loading;
@@ -63,6 +65,29 @@ class ProfileMeViewModel extends ChangeNotifier {
         userId,
       );
       _userGiftWallResponseEntity = detail;
+      _status = ViewStatus.success;
+      notifyListeners();
+      return detail;
+    } on UnauthorizedException {
+      rethrow;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _status = ViewStatus.error;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+
+
+  Future<UserGiftWallLightResponseEntity?> giftUserGiftWallLight(String userId,) async {
+    _status = ViewStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final detail = await _repository.giftUserGiftWallLight(userId);
+      _userGiftWallLightResponseEntity = detail;
       _status = ViewStatus.success;
       notifyListeners();
       return detail;

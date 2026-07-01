@@ -25,6 +25,9 @@ class NetworkEndpoints {
   //陪玩分类详情
   static const String getAccompanyCategoryDetail = '/accompany/accompanyCategoryDetail?categoryId=';
 
+  //指定用户墙点亮数
+  static String userGiftWallLight(String userId) => '/gift/userGiftWallLight/$userId';
+
   ///获取个人信息详情
   static const String getUserInfo = '/user/detail';
 }

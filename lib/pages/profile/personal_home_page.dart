@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets/app_card.dart';
 import '../../models/user_detail_response_entity.dart';
+import '../../models/user_gift_wall_light_response_entity.dart';
 import '../../models/user_gift_wall_response_entity.dart';
 import '../../viewmodels/profile_me_view_model.dart';
 
@@ -18,19 +19,34 @@ class _PersonalHomePageState extends State<PersonalHomePage> {
   late final ProfileMeViewModel _viewModel;
   late Future<UserGiftWallResponseEntity?> _giftWallFuture;
 
+  late Future<UserGiftWallLightResponseEntity?> _giftWallLightFuture;
+
   @override
   void initState() {
     super.initState();
     _viewModel = ProfileMeViewModel();
     _giftWallFuture = _loadGiftWall();
+    _giftWallLightFuture =  _loadGiftWallLight();
   }
 
   Future<UserGiftWallResponseEntity?> _loadGiftWall() async {
     final userId = _giftWallUserId();
     try {
-      return await _viewModel.giftUserGiftWall(1, 1, 20, userId);
+      return await _viewModel.giftUserGiftWall(1, 1, 5, userId);
     } catch (error, stackTrace) {
       debugPrint('giftUserGiftWall error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
+  }
+
+  //指定用户礼物墙点亮数
+  Future<UserGiftWallLightResponseEntity?> _loadGiftWallLight() async {
+    final userId = _giftWallUserId();
+    try {
+      return await _viewModel.giftUserGiftWallLight(userId);
+    } catch (error, stackTrace) {
+      debugPrint('giftUserGiftWallLight error: $error');
       debugPrintStack(stackTrace: stackTrace);
       return null;
     }
@@ -150,11 +166,12 @@ class _PersonalHomePageState extends State<PersonalHomePage> {
                   children: [
                     _ProfileSection(
                       title: '礼物墙',
-                      trailing: FutureBuilder<UserGiftWallResponseEntity?>(
-                        future: _giftWallFuture,
+                      trailing: FutureBuilder<UserGiftWallLightResponseEntity?>(
+                        future: _giftWallLightFuture,
                         builder: (context, snapshot) {
-                          final total = snapshot.data?.data.total ?? 0;
-                          return _SectionCount(countText: total.toString(), totalText: '296');
+                          final totalCount = snapshot.data?.data.totalCount ?? 0;
+                          final litCount = snapshot.data?.data.litCount ?? 0;
+                          return _SectionCount(countText: litCount.toString(), totalText: totalCount.toString());
                         },
                       ),
                       child: FutureBuilder<UserGiftWallResponseEntity?>(

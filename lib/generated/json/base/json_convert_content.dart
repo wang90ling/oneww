@@ -13,6 +13,7 @@ import 'package:oneww/models/post_list_response_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_request_entity.dart';
 import 'package:oneww/models/query_dispatch_rooms_by_heat_response_entity.dart';
 import 'package:oneww/models/user_detail_response_entity.dart';
+import 'package:oneww/models/user_gift_wall_light_response_entity.dart';
 import 'package:oneww/models/user_gift_wall_request_entity.dart';
 import 'package:oneww/models/user_gift_wall_response_entity.dart';
 
@@ -1069,6 +1070,15 @@ class JsonConvert {
           Map<String, dynamic> e) =>
           UserDetailResponseDataGuardianMedal.fromJson(e)).toList() as M;
     }
+    if (<UserGiftWallLightResponseEntity>[] is M) {
+      return data.map<UserGiftWallLightResponseEntity>((
+          Map<String, dynamic> e) =>
+          UserGiftWallLightResponseEntity.fromJson(e)).toList() as M;
+    }
+    if (<UserGiftWallLightResponseData>[] is M) {
+      return data.map<UserGiftWallLightResponseData>((Map<String, dynamic> e) =>
+          UserGiftWallLightResponseData.fromJson(e)).toList() as M;
+    }
     if (<UserGiftWallRequestEntity>[] is M) {
       return data.map<UserGiftWallRequestEntity>((Map<String, dynamic> e) =>
           UserGiftWallRequestEntity.fromJson(e)).toList() as M;
@@ -1495,6 +1505,10 @@ class JsonConvertClassCollection {
         .toString(): UserDetailResponseDataUserPropDetailDtoNobleCard.fromJson,
     (UserDetailResponseDataGuardianMedal)
         .toString(): UserDetailResponseDataGuardianMedal.fromJson,
+    (UserGiftWallLightResponseEntity)
+        .toString(): UserGiftWallLightResponseEntity.fromJson,
+    (UserGiftWallLightResponseData).toString(): UserGiftWallLightResponseData
+        .fromJson,
     (UserGiftWallRequestEntity).toString(): UserGiftWallRequestEntity.fromJson,
     (UserGiftWallResponseEntity).toString(): UserGiftWallResponseEntity
         .fromJson,

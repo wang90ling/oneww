@@ -16,6 +16,7 @@ import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../models/todo_item.dart';
 import '../../models/user_detail_response_entity.dart';
+import '../../models/user_gift_wall_light_response_entity.dart';
 import '../../models/user_gift_wall_request_entity.dart';
 import '../../models/user_gift_wall_response_entity.dart';
 import '../../models/wan_article_entity.dart';
@@ -465,6 +466,26 @@ class ApiService {
       ..data.total = 0
       ..data.records = <UserGiftWallResponseDataRecords>[];
     return fallback;
+  }
+
+
+  //指定用户礼物墙点亮数
+  Future<UserGiftWallLightResponseEntity> giftUserGiftWallLight(String userId) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}${NetworkEndpoints.userGiftWallLight(userId)}',
+    );
+    final response = await _client.getJson(
+      uri,
+      headers: _buildAppHeaders(token),
+    );
+
+    final data = response['data'];
+    AppLogger.info('giftUserGiftWallLight data:$data', tag: 'wangling');
+    if (data is Map<String, dynamic>) {
+      return UserGiftWallLightResponseEntity.fromJson(response);
+    }
+    throw const FormatException('Invalid accompany category detail response');
   }
 
 
