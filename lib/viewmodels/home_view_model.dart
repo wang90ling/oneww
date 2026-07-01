@@ -3,6 +3,7 @@ import 'package:oneww/core/helpers/app_logger.dart';
 import 'package:oneww/core/network/network_client.dart';
 
 import '../models/accompany_category_detail_entity.dart';
+import '../models/banner_respose_entity.dart';
 import '../models/home_menu_item.dart';
 import '../repositories/home_repository.dart';
 import 'view_state.dart';
@@ -16,6 +17,8 @@ class HomeViewModel extends ChangeNotifier {
   String? _errorMessage;
   List<HomeMenuItem> _menus = const [];
   AccompanyCategoryDetailEntity? _accompanyCategoryDetail;
+
+  BannerResposeEntity? _bannerResposeEntity;
 
   ViewStatus get status => _status;
   String? get errorMessage => _errorMessage;
@@ -49,6 +52,27 @@ class HomeViewModel extends ChangeNotifier {
     try {
       final detail = await _repository.getAccompanyCategoryDetail(categoryId, userId);
       _accompanyCategoryDetail = detail;
+      _status = ViewStatus.success;
+      notifyListeners();
+      return detail;
+    } on UnauthorizedException {
+      rethrow;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _status = ViewStatus.error;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  ///首页的BannerList
+  Future<BannerResposeEntity?> getBannerList() async {
+    _status = ViewStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final detail = await _repository.getBannerList();
+      _bannerResposeEntity = detail;
       _status = ViewStatus.success;
       notifyListeners();
       return detail;

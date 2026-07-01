@@ -2,6 +2,7 @@ import 'package:oneww/core/helpers/app_logger.dart';
 
 import '../core/network/api_service.dart';
 import '../models/accompany_category_detail_entity.dart';
+import '../models/banner_respose_entity.dart';
 import '../models/home_category_item.dart';
 import '../models/home_menu_item.dart';
 import '../router/app_routes.dart';
@@ -66,6 +67,14 @@ class HomeRepository {
   Future<AccompanyCategoryDetailEntity> getAccompanyCategoryDetail(String categoryId, String userId) async {
     final response = await _apiService.getAccompanyCategoryDetail(categoryId, userId);
     AppLogger.info('getAccompanyCategoryDetail 成功: code=${response.code}, message=${response.message}', tag: 'wangling');
+    return response;
+  }
+
+
+  ///首页的BannerList
+  Future<BannerResposeEntity> getBannerList() async {
+    final response = await _apiService.getBannerList();
+    AppLogger.info('getBannerList 成功: code=${response.code}, message=${response.message}', tag: 'wangling');
     return response;
   }
 

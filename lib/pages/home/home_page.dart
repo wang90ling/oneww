@@ -4,6 +4,7 @@ import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/network_client.dart';
+import '../../models/banner_respose_entity.dart';
 import '../../models/home_category_item.dart';
 import '../../models/home_new_recommend_entity.dart';
 import '../../models/play_room_response_entity.dart';
@@ -11,6 +12,7 @@ import '../../models/playroom_by_hot_request.dart';
 import '../../models/query_dispatch_rooms_by_heat_request_entity.dart';
 import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
+import '../../viewmodels/home_view_model.dart';
 import '../login/login_page.dart';
 import 'personal_detail_page.dart';
 
@@ -28,6 +30,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ApiService _apiService = ApiService();
+
+  late final HomeViewModel _viewModel;
 
   bool _isLoadingCategories = true;
   String? _categoryError;
@@ -55,9 +59,12 @@ class _HomePageState extends State<HomePage> {
   int _hotRoomsPageNo = 1;
   bool _hasMoreHotRooms = false;
 
+  late Future<BannerResposeEntity?> _bannerResposeEntity;
+
   @override
   void initState() {
     super.initState();
+    _viewModel = HomeViewModel();
     _checkAuthAndLoadData();
   }
 
@@ -78,6 +85,18 @@ class _HomePageState extends State<HomePage> {
     _getRecommendList();
     _loadDispatchRooms();
     _loadHotRooms();
+    _bannerResposeEntity = _bannerRespose();
+  }
+
+  //首页banner列表数据
+  Future<BannerResposeEntity?> _bannerRespose() async {
+    try {
+      return await _viewModel.getBannerList();
+    } catch (error, stackTrace) {
+      debugPrint('giftUserGiftWallLight error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return null;
+    }
   }
 
   /// 加载派单厅数据
