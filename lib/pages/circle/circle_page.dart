@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +22,6 @@ class CirclePage extends StatefulWidget {
 class _CirclePageState extends State<CirclePage> {
   late final CircleViewModel _viewModel;
   final ScrollController _scrollController = ScrollController();
-  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -41,7 +41,7 @@ class _CirclePageState extends State<CirclePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _PublishSheet(imagePicker: _imagePicker),
+      builder: (context) => const _PublishSheet(),
     );
 
     if (!mounted || result == null) return;
@@ -596,9 +596,7 @@ class _CommentSheet extends StatelessWidget {
 }
 
 class _PublishSheet extends StatefulWidget {
-  const _PublishSheet({required this.imagePicker});
-
-  final ImagePicker imagePicker;
+  const _PublishSheet();
 
   @override
   State<_PublishSheet> createState() => _PublishSheetState();
@@ -612,8 +610,13 @@ class _PublishSheetState extends State<_PublishSheet> {
   _VisibilityOption _visibility = _VisibilityOption.all;
   bool _isSelecting = false;
   bool _albumLoading = false;
+  bool _albumGridLoadingMore = false;
   List<AssetPathEntity> _albumPaths = <AssetPathEntity>[];
   AssetPathEntity? _currentAlbum;
+  List<AssetEntity> _gridAssets = <AssetEntity>[];
+  int _gridPage = 0;
+  bool _gridHasMore = true;
+  AssetPathEntity? _selectedAlbumForGrid;
 
   @override
   void dispose() {
@@ -621,80 +624,87 @@ class _PublishSheetState extends State<_PublishSheet> {
     super.dispose();
   }
 
+  Future<bool> _ensurePhotoPermission() async {
+    final permission = await PhotoManager.requestPermissionExtend();
+    final granted = permission.isAuth || permission.hasAccess;
+    if (!granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要相册权限才能选择图片/视频')));
+    }
+    return granted;
+  }
+
+  Future<List<AssetPathEntity>> _fetchAlbums() async {
+    if (!await _ensurePhotoPermission()) return <AssetPathEntity>[];
+    return PhotoManager.getAssetPathList(
+      type: _type == _PostType.video ? RequestType.video : RequestType.image,
+      hasAll: true,
+      onlyAll: false,
+    );
+  }
+
+  Future<List<AssetEntity>> _fetchAlbumAssets(AssetPathEntity album) async {
+    const pageSize = 60;
+    final firstPage = await album.getAssetListPaged(page: 0, size: pageSize);
+    if (firstPage.length < pageSize) return firstPage;
+    return firstPage;
+  }
+
   Future<void> _loadAlbums({AssetPathEntity? preferred}) async {
     if (_albumLoading) return;
     setState(() => _albumLoading = true);
     try {
-      final permission = await PhotoManager.requestPermissionExtend();
-      if (!permission.isAuth && !permission.hasAccess) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要相册权限才能选择图片/视频')));
-        return;
-      }
-
-      final paths = await PhotoManager.getAssetPathList(
-        type: _type == _PostType.video ? RequestType.video : RequestType.image,
-        hasAll: true,
-        onlyAll: false,
-      );
+      final paths = await _fetchAlbums();
       if (paths.isEmpty) return;
 
       final album = preferred ?? _currentAlbum ?? paths.first;
-      await album.getAssetListPaged(page: 0, size: 1000);
+      final assets = await _fetchAlbumAssets(album);
       if (!mounted) return;
       setState(() {
         _albumPaths = paths;
         _currentAlbum = album;
+        _selectedAlbumForGrid = album;
+        _gridAssets = assets;
+        _gridPage = 1;
+        _gridHasMore = assets.length >= 60;
       });
     } finally {
       if (mounted) setState(() => _albumLoading = false);
     }
   }
 
-  Future<void> _showAlbumSelector() async {
-    if (_albumPaths.isEmpty) {
+  Future<void> _loadNextGridPage() async {
+    if (_albumGridLoadingMore || !_gridHasMore || _selectedAlbumForGrid == null) return;
+    setState(() => _albumGridLoadingMore = true);
+    try {
+      final nextPage = await _selectedAlbumForGrid!.getAssetListPaged(page: _gridPage, size: 60);
+      if (!mounted) return;
+      setState(() {
+        _gridAssets = [..._gridAssets, ...nextPage];
+        _gridPage += 1;
+        _gridHasMore = nextPage.length == 60;
+      });
+    } finally {
+      if (mounted) setState(() => _albumGridLoadingMore = false);
+    }
+  }
+
+  Future<List<AssetEntity>?> _showAlbumSelector() async {
+    if (_albumPaths.isEmpty || _selectedAlbumForGrid == null) {
       await _loadAlbums();
     }
-    if (!mounted || _albumPaths.isEmpty) return;
+    if (!mounted || _albumPaths.isEmpty || _selectedAlbumForGrid == null) return null;
 
-    final selected = await showModalBottomSheet<AssetPathEntity>(
+    return showModalBottomSheet<List<AssetEntity>>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) {
-        return SafeArea(
-          child: SizedBox(
-            height: 360,
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
-                const SizedBox(height: 12),
-                const Text('相册', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _albumPaths.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final album = _albumPaths[index];
-                      return ListTile(
-                        title: Text(album.name.isEmpty ? '未命名相册' : album.name),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () => Navigator.pop(context, album),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AlbumGridPickerSheet(
+        albums: _albumPaths,
+        currentAlbum: _selectedAlbumForGrid!,
+        initialAssets: _gridAssets,
+        mediaType: _type,
+      ),
     );
-
-    if (!mounted || selected == null) return;
-    await _loadAlbums(preferred: selected);
   }
 
   Future<void> _showMediaSourceSheet() async {
@@ -713,10 +723,12 @@ class _PublishSheetState extends State<_PublishSheet> {
               const Text('选择图片/视频', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
                 title: const Text('图片'),
                 onTap: () => Navigator.pop(context, _MediaChoice.images),
               ),
               ListTile(
+                leading: const Icon(Icons.videocam_outlined),
                 title: const Text('视频'),
                 onTap: () => Navigator.pop(context, _MediaChoice.video),
               ),
@@ -733,60 +745,20 @@ class _PublishSheetState extends State<_PublishSheet> {
     );
 
     if (!mounted || choice == null) return;
-    if (choice == _MediaChoice.images) {
-      await _pickImages();
-    } else if (choice == _MediaChoice.video) {
-      await _pickVideo();
-    }
-  }
+    final mediaType = choice == _MediaChoice.video ? _PostType.video : _PostType.images;
+    final assets = await _showAlbumGridPicker(mediaType: mediaType);
+    if (!mounted || assets == null || assets.isEmpty) return;
 
-  Future<void> _pickImages() async {
-    if (_isSelecting) return;
-    if (_mediaFiles.any((item) => _isVideoPath(item.path)) || _type == _PostType.video) {
+    setState(() => _isSelecting = true);
+    try {
+      final files = await _convertAssetsToXFiles(assets, limit: mediaType == _PostType.video ? 1 : 9);
+      if (!mounted || files.isEmpty) return;
       setState(() {
-        _mediaFiles.clear();
-        _type = _PostType.images;
+        _mediaFiles
+          ..clear()
+          ..addAll(files);
+        _type = mediaType;
       });
-    } else {
-      setState(() => _type = _PostType.images);
-    }
-
-    final remaining = 9 - _mediaFiles.length;
-    if (remaining <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('图片最多选择 9 张')));
-      return;
-    }
-
-    setState(() => _isSelecting = true);
-    try {
-      final picked = await widget.imagePicker.pickMultiImage(imageQuality: 85);
-      if (picked.isEmpty) return;
-      final nextFiles = picked.take(remaining).toList();
-      if (mounted) {
-        setState(() {
-          _mediaFiles.addAll(nextFiles);
-          _type = _PostType.images;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _isSelecting = false);
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    if (_isSelecting) return;
-    setState(() => _isSelecting = true);
-    try {
-      final video = await widget.imagePicker.pickVideo(source: ImageSource.gallery);
-      if (video == null) return;
-      if (mounted) {
-        setState(() {
-          _mediaFiles
-            ..clear()
-            ..add(video);
-          _type = _PostType.video;
-        });
-      }
     } finally {
       if (mounted) setState(() => _isSelecting = false);
     }
@@ -799,6 +771,48 @@ class _PublishSheetState extends State<_PublishSheet> {
         _type = _PostType.text;
       }
     });
+  }
+
+  Future<List<AssetEntity>?> _showAlbumGridPicker({required _PostType mediaType}) async {
+    if (_albumLoading) return null;
+    setState(() => _albumLoading = true);
+    try {
+      if (!await _ensurePhotoPermission()) return null;
+      final albums = await PhotoManager.getAssetPathList(
+        type: mediaType == _PostType.video ? RequestType.video : RequestType.image,
+        hasAll: true,
+        onlyAll: false,
+      );
+      if (!mounted || albums.isEmpty) return null;
+
+      final initialAlbum = _selectedAlbumForGrid ?? albums.first;
+      final initialAssets = await initialAlbum.getAssetListPaged(page: 0, size: 60);
+      if (!mounted) return null;
+
+      return showModalBottomSheet<List<AssetEntity>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _AlbumGridPickerSheet(
+          albums: albums,
+          currentAlbum: initialAlbum,
+          initialAssets: initialAssets,
+          mediaType: mediaType,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _albumLoading = false);
+    }
+  }
+
+  Future<List<XFile>> _convertAssetsToXFiles(List<AssetEntity> assets, {required int limit}) async {
+    final result = <XFile>[];
+    for (final asset in assets.take(limit)) {
+      final file = await asset.file;
+      if (file == null) continue;
+      result.add(XFile(file.path));
+    }
+    return result;
   }
 
   Future<void> _pickTopics() async {
@@ -904,7 +918,15 @@ class _PublishSheetState extends State<_PublishSheet> {
                       if (_type == _PostType.text) {
                         await _showMediaSourceSheet();
                       } else {
-                        await _showAlbumSelector();
+                        final selectedAssets = await _showAlbumSelector();
+                        if (!mounted || selectedAssets == null || selectedAssets.isEmpty) return;
+                        final files = await _convertAssetsToXFiles(selectedAssets, limit: _type == _PostType.video ? 1 : 9);
+                        if (!mounted || files.isEmpty) return;
+                        setState(() {
+                          _mediaFiles
+                            ..clear()
+                            ..addAll(files);
+                        });
                       }
                     },
                     child: Container(
@@ -938,7 +960,17 @@ class _PublishSheetState extends State<_PublishSheet> {
                   if (_type == _PostType.images || _type == _PostType.video) ...[
                     const SizedBox(height: 8),
                     TextButton.icon(
-                      onPressed: _showAlbumSelector,
+                      onPressed: () async {
+                        final selectedAssets = await _showAlbumGridPicker(mediaType: _type);
+                        if (!mounted || selectedAssets == null || selectedAssets.isEmpty) return;
+                        final files = await _convertAssetsToXFiles(selectedAssets, limit: _type == _PostType.video ? 1 : 9);
+                        if (!mounted || files.isEmpty) return;
+                        setState(() {
+                          _mediaFiles
+                            ..clear()
+                            ..addAll(files);
+                        });
+                      },
                       icon: const Icon(Icons.photo_library_outlined, size: 18),
                       label: Text(_currentAlbum?.name.isNotEmpty == true ? _currentAlbum!.name : '切换相册'),
                     ),
@@ -1272,6 +1304,267 @@ class _MediaPreviewGrid extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _AlbumGridPickerSheet extends StatefulWidget {
+  const _AlbumGridPickerSheet({
+    required this.albums,
+    required this.currentAlbum,
+    required this.initialAssets,
+    required this.mediaType,
+  });
+
+  final List<AssetPathEntity> albums;
+  final AssetPathEntity currentAlbum;
+  final List<AssetEntity> initialAssets;
+  final _PostType mediaType;
+
+  @override
+  State<_AlbumGridPickerSheet> createState() => _AlbumGridPickerSheetState();
+}
+
+class _AlbumGridPickerSheetState extends State<_AlbumGridPickerSheet> {
+  late AssetPathEntity _selectedAlbum = widget.currentAlbum;
+  late final List<AssetEntity> _assets = List<AssetEntity>.from(widget.initialAssets);
+  final ScrollController _scrollController = ScrollController();
+  final Set<String> _selectedIds = <String>{};
+  bool _loadingMore = false;
+  int _page = 1;
+  bool _hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 320) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final nextPage = await _selectedAlbum.getAssetListPaged(page: _page, size: 60);
+      if (!mounted) return;
+      setState(() {
+        _assets.addAll(nextPage);
+        _page += 1;
+        _hasMore = nextPage.length == 60;
+      });
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  Future<void> _changeAlbum(AssetPathEntity album) async {
+    setState(() {
+      _selectedAlbum = album;
+      _assets.clear();
+      _selectedIds.clear();
+      _page = 0;
+      _hasMore = true;
+    });
+    final firstPage = await album.getAssetListPaged(page: 0, size: 60);
+    if (!mounted) return;
+    setState(() {
+      _assets.addAll(firstPage);
+      _page = 1;
+      _hasMore = firstPage.length == 60;
+    });
+  }
+
+  Future<void> _toggleAsset(AssetEntity asset) async {
+    final isSelected = _selectedIds.contains(asset.id);
+    if (isSelected) {
+      setState(() => _selectedIds.remove(asset.id));
+      return;
+    }
+
+    final limit = widget.mediaType == _PostType.video ? 1 : 9;
+    if (_selectedIds.length >= limit) return;
+
+    setState(() => _selectedIds.add(asset.id));
+  }
+
+  Future<void> _confirm() async {
+    final chosen = _assets.where((asset) => _selectedIds.contains(asset.id)).toList();
+    Navigator.pop(context, chosen);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.86,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+                  const Spacer(),
+                  PopupMenuButton<AssetPathEntity>(
+                    initialValue: _selectedAlbum,
+                    onSelected: _changeAlbum,
+                    itemBuilder: (context) => widget.albums
+                        .map(
+                          (album) => PopupMenuItem<AssetPathEntity>(
+                            value: album,
+                            child: Text(album.name.isEmpty ? '未命名相册' : album.name),
+                          ),
+                        )
+                        .toList(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_selectedAlbum.name.isEmpty ? '相册' : _selectedAlbum.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.keyboard_arrow_down_rounded),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(onPressed: _confirm, child: const Text('完成')),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+              child: Row(
+                children: [
+                  Text(widget.mediaType == _PostType.video ? '选择视频' : '选择图片', style: const TextStyle(fontSize: 13, color: Color(0xFF8A8FA3))),
+                  const Spacer(),
+                  Text('${_selectedIds.length}/${widget.mediaType == _PostType.video ? 1 : 9}', style: const TextStyle(fontSize: 13, color: Color(0xFF8A8FA3))),
+                ],
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 6,
+                  mainAxisSpacing: 6,
+                ),
+                itemCount: _assets.length + (_loadingMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= _assets.length) {
+                    return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                  }
+                  final asset = _assets[index];
+                  final selected = _selectedIds.contains(asset.id);
+                  return _AlbumGridItem(
+                    asset: asset,
+                    selected: selected,
+                    mediaType: widget.mediaType,
+                    onTap: () => _toggleAsset(asset),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _confirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7A5CFF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('完成'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AlbumGridItem extends StatelessWidget {
+  const _AlbumGridItem({required this.asset, required this.selected, required this.mediaType, required this.onTap});
+
+  final AssetEntity asset;
+  final bool selected;
+  final _PostType mediaType;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            FutureBuilder<Uint8List?>(
+              future: asset.thumbnailDataWithSize(
+                const ThumbnailSize.square(240),
+              ),
+              builder: (context, snapshot) {
+                final bytes = snapshot.data;
+                if (bytes == null) {
+                  return Container(color: const Color(0xFFF2F3F7));
+                }
+                return Image.memory(bytes, fit: BoxFit.cover);
+              },
+            ),
+            if (asset.type == AssetType.video || mediaType == _PostType.video)
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.28), shape: BoxShape.circle),
+                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                ),
+              ),
+            Positioned(
+              top: 6,
+              right: 6,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFF7A5CFF) : Colors.black.withValues(alpha: 0.22),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: selected ? const Icon(Icons.check_rounded, size: 14, color: Colors.white) : null,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
