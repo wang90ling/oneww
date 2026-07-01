@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/post_list_response_entity.dart';
@@ -47,12 +48,29 @@ class _CirclePageState extends State<CirclePage> {
 
     await _viewModel.setPublishing(true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      final uploadedUrls = <String>[];
+      for (final file in result.mediaFiles) {
+        uploadedUrls.add(await _viewModel.uploadMediaFile(file));
+      }
+
+      await _viewModel.createCirclePost(
+        content: result.content,
+        mediaUrls: uploadedUrls,
+        mediaType: result.mediaType.value,
+        topicIds: result.topicIds,
+        visibility: result.visibility.apiValue,
+      );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(content: Text('动态发布成功，已选择 ${result.mediaFiles.length} 个媒体文件')));
+        ..showSnackBar(const SnackBar(content: Text('动态发布成功')));
       await _viewModel.loadLatest();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text('发布失败：$error')));
     } finally {
       if (mounted) {
         await _viewModel.setPublishing(false);
@@ -579,6 +597,7 @@ class _CommentSheet extends StatelessWidget {
 
 class _PublishSheet extends StatefulWidget {
   const _PublishSheet({required this.imagePicker});
+
   final ImagePicker imagePicker;
 
   @override
@@ -588,8 +607,13 @@ class _PublishSheet extends StatefulWidget {
 class _PublishSheetState extends State<_PublishSheet> {
   final TextEditingController _contentController = TextEditingController();
   final List<XFile> _mediaFiles = <XFile>[];
+  final List<_TopicItem> _selectedTopics = <_TopicItem>[];
   _PostType _type = _PostType.text;
+  _VisibilityOption _visibility = _VisibilityOption.all;
   bool _isSelecting = false;
+  bool _albumLoading = false;
+  List<AssetPathEntity> _albumPaths = <AssetPathEntity>[];
+  AssetPathEntity? _currentAlbum;
 
   @override
   void dispose() {
@@ -597,25 +621,218 @@ class _PublishSheetState extends State<_PublishSheet> {
     super.dispose();
   }
 
-  Future<void> _pickMedia() async {
+  Future<void> _loadAlbums({AssetPathEntity? preferred}) async {
+    if (_albumLoading) return;
+    setState(() => _albumLoading = true);
+    try {
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (!permission.isAuth && !permission.hasAccess) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要相册权限才能选择图片/视频')));
+        return;
+      }
+
+      final paths = await PhotoManager.getAssetPathList(
+        type: _type == _PostType.video ? RequestType.video : RequestType.image,
+        hasAll: true,
+        onlyAll: false,
+      );
+      if (paths.isEmpty) return;
+
+      final album = preferred ?? _currentAlbum ?? paths.first;
+      await album.getAssetListPaged(page: 0, size: 1000);
+      if (!mounted) return;
+      setState(() {
+        _albumPaths = paths;
+        _currentAlbum = album;
+      });
+    } finally {
+      if (mounted) setState(() => _albumLoading = false);
+    }
+  }
+
+  Future<void> _showAlbumSelector() async {
+    if (_albumPaths.isEmpty) {
+      await _loadAlbums();
+    }
+    if (!mounted || _albumPaths.isEmpty) return;
+
+    final selected = await showModalBottomSheet<AssetPathEntity>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: SizedBox(
+            height: 360,
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
+                const SizedBox(height: 12),
+                const Text('相册', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _albumPaths.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final album = _albumPaths[index];
+                      return ListTile(
+                        title: Text(album.name.isEmpty ? '未命名相册' : album.name),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.pop(context, album),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+    await _loadAlbums(preferred: selected);
+  }
+
+  Future<void> _showMediaSourceSheet() async {
+    final choice = await showModalBottomSheet<_MediaChoice>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
+              const SizedBox(height: 12),
+              const Text('选择图片/视频', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              ListTile(
+                title: const Text('图片'),
+                onTap: () => Navigator.pop(context, _MediaChoice.images),
+              ),
+              ListTile(
+                title: const Text('视频'),
+                onTap: () => Navigator.pop(context, _MediaChoice.video),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted || choice == null) return;
+    if (choice == _MediaChoice.images) {
+      await _pickImages();
+    } else if (choice == _MediaChoice.video) {
+      await _pickVideo();
+    }
+  }
+
+  Future<void> _pickImages() async {
     if (_isSelecting) return;
+    if (_mediaFiles.any((item) => _isVideoPath(item.path)) || _type == _PostType.video) {
+      setState(() {
+        _mediaFiles.clear();
+        _type = _PostType.images;
+      });
+    } else {
+      setState(() => _type = _PostType.images);
+    }
+
+    final remaining = 9 - _mediaFiles.length;
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('图片最多选择 9 张')));
+      return;
+    }
+
     setState(() => _isSelecting = true);
     try {
-      if (_type == _PostType.video) {
-        final video = await widget.imagePicker.pickVideo(source: ImageSource.gallery);
-        if (video == null) return;
-        setState(() { _mediaFiles..clear()..add(video); });
-      } else {
-        final picked = await widget.imagePicker.pickMultiImage(imageQuality: 85);
-        if (picked.isEmpty) return;
-        setState(() { _mediaFiles.addAll(picked.take(9 - _mediaFiles.length)); });
+      final picked = await widget.imagePicker.pickMultiImage(imageQuality: 85);
+      if (picked.isEmpty) return;
+      final nextFiles = picked.take(remaining).toList();
+      if (mounted) {
+        setState(() {
+          _mediaFiles.addAll(nextFiles);
+          _type = _PostType.images;
+        });
       }
     } finally {
       if (mounted) setState(() => _isSelecting = false);
     }
   }
 
-  void _removeMediaAt(int index) => setState(() => _mediaFiles.removeAt(index));
+  Future<void> _pickVideo() async {
+    if (_isSelecting) return;
+    setState(() => _isSelecting = true);
+    try {
+      final video = await widget.imagePicker.pickVideo(source: ImageSource.gallery);
+      if (video == null) return;
+      if (mounted) {
+        setState(() {
+          _mediaFiles
+            ..clear()
+            ..add(video);
+          _type = _PostType.video;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isSelecting = false);
+    }
+  }
+
+  void _removeMediaAt(int index) {
+    setState(() {
+      _mediaFiles.removeAt(index);
+      if (_mediaFiles.isEmpty) {
+        _type = _PostType.text;
+      }
+    });
+  }
+
+  Future<void> _pickTopics() async {
+    final result = await showModalBottomSheet<List<_TopicItem>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => _TopicPickerSheet(
+        topics: _availableTopics,
+        selectedTopics: _selectedTopics,
+      ),
+    );
+
+    if (!mounted || result == null) return;
+    setState(() {
+      _selectedTopics
+        ..clear()
+        ..addAll(result);
+    });
+  }
+
+  Future<void> _pickVisibility() async {
+    final result = await showModalBottomSheet<_VisibilityOption>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => _VisibilityPickerSheet(selected: _visibility),
+    );
+
+    if (!mounted || result == null) return;
+    setState(() => _visibility = result);
+  }
 
   void _submit() {
     final content = _contentController.text.trim();
@@ -623,47 +840,28 @@ class _PublishSheetState extends State<_PublishSheet> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先输入内容或选择图片/视频')));
       return;
     }
-    Navigator.pop(context, _PublishResult(content: content, type: _type, mediaFiles: List<XFile>.from(_mediaFiles), tags: const ['# 发动态']));
+
+    Navigator.pop(
+      context,
+      _PublishResult(
+        content: content,
+        mediaFiles: List<XFile>.from(_mediaFiles),
+        mediaType: _type,
+        topicIds: _selectedTopics.map((e) => e.id).toList(),
+        visibility: _visibility,
+      ),
+    );
+  }
+
+  bool _isVideoPath(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.m4v') || lower.endsWith('.avi');
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final theme = Theme.of(context);
-    final previewGrid = _mediaFiles.isEmpty
-        ? const SizedBox.shrink()
-        : GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _mediaFiles.length > 9 ? 9 : _mediaFiles.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 1),
-      itemBuilder: (context, index) {
-        final item = _mediaFiles[index];
-        final isVideo = _type == _PostType.video || item.path.toLowerCase().endsWith('.mp4') || item.path.toLowerCase().endsWith('.mov');
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              isVideo
-                  ? Container(color: const Color(0xFFF2F3F7), child: const Center(child: Icon(Icons.videocam_rounded, size: 36, color: Color(0xFF7A5CFF))))
-                  : Image.file(File(item.path), fit: BoxFit.cover),
-              Positioned(
-                right: 6,
-                top: 6,
-                child: GestureDetector(
-                  onTap: () => _removeMediaAt(index),
-                  child: Container(decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, size: 16, color: Colors.white)),
-                ),
-              ),
-              if (isVideo)
-                Container(color: Colors.black.withValues(alpha: 0.2), child: const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 34))),
-            ],
-          ),
-        );
-      },
-    );
-
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottomInset),
       decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -672,44 +870,158 @@ class _PublishSheetState extends State<_PublishSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')), const Spacer(), Text('发高光', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)), const Spacer(), TextButton(onPressed: _submit, child: const Text('发布'))]),
+            Row(
+              children: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+                const Spacer(),
+                Text('发高光', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                const Spacer(),
+                TextButton(onPressed: _submit, child: const Text('发布')),
+              ],
+            ),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFFF7F8FC), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FC),
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      _TypeChip(label: '纯文字', selected: _type == _PostType.text, onTap: () { setState(() { _type = _PostType.text; _mediaFiles.clear(); }); }),
+                      _TypeChip(label: '纯文字', selected: _type == _PostType.text, onTap: () => setState(() => _type = _PostType.text)),
                       const SizedBox(width: 8),
-                      _TypeChip(label: '图片', selected: _type == _PostType.images, onTap: () { setState(() { _type = _PostType.images; _mediaFiles.clear(); }); }),
+                      _TypeChip(label: '图片', selected: _type == _PostType.images, onTap: () => setState(() => _type = _PostType.images)),
                       const SizedBox(width: 8),
-                      _TypeChip(label: '视频', selected: _type == _PostType.video, onTap: () { setState(() { _type = _PostType.video; _mediaFiles.clear(); }); }),
+                      _TypeChip(label: '视频', selected: _type == _PostType.video, onTap: () => setState(() => _type = _PostType.video)),
                     ],
                   ),
                   const SizedBox(height: 14),
                   GestureDetector(
-                    onTap: _pickMedia,
+                    onTap: () async {
+                      if (_type == _PostType.text) {
+                        await _showMediaSourceSheet();
+                      } else {
+                        await _showAlbumSelector();
+                      }
+                    },
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE8EAF0))),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE8EAF0)),
+                      ),
                       child: Column(
                         children: [
                           const Icon(Icons.add_photo_alternate_outlined, size: 34, color: Color(0xFF8A8FA3)),
                           const SizedBox(height: 6),
-                          Text(_type == _PostType.video ? '选择视频' : '选择图片或视频', style: const TextStyle(fontSize: 12, color: Color(0xFF8A8FA3))),
+                          Text(
+                            _type == _PostType.video ? '上传视频' : '上传图片/视频',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF8A8FA3)),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  if (_mediaFiles.isNotEmpty) ...[const SizedBox(height: 14), previewGrid],
+                  if (_mediaFiles.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _MediaPreviewGrid(
+                      mediaFiles: _mediaFiles,
+                      mediaType: _type,
+                      onRemove: _removeMediaAt,
+                    ),
+                  ],
+                  if (_type == _PostType.images || _type == _PostType.video) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _showAlbumSelector,
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: Text(_currentAlbum?.name.isNotEmpty == true ? _currentAlbum!.name : '切换相册'),
+                    ),
+                  ],
                   const SizedBox(height: 14),
-                  TextField(controller: _contentController, maxLines: 6, decoration: const InputDecoration(border: InputBorder.none, hintText: '这一刻的想法')),
-                  const SizedBox(height: 16),
-                  Row(children: [const Text('# 话题', style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), TextButton(onPressed: () {}, child: const Text('全部 >'))]),
+                  TextField(
+                    controller: _contentController,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: '这一刻的想法',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: _pickTopics,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE8EAF0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('# 话题', style: TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _selectedTopics.isEmpty
+                                ? Text('选择要参与的话题', style: TextStyle(color: Colors.grey.shade500))
+                                : Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: _selectedTopics
+                                        .map(
+                                          (topic) => Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(colors: [Color(0xFFEDE7FF), Color(0xFFFFECF8)]),
+                                              borderRadius: BorderRadius.circular(999),
+                                            ),
+                                            child: Text(topic.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF5A5A5A))),
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('全部 >', style: TextStyle(color: Color(0xFF8A8FA3))),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _pickVisibility,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE8EAF0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('谁可以看', style: TextStyle(fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          Text(_visibility.label, style: const TextStyle(color: Color(0xFF7A5CFF), fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right_rounded, color: Color(0xFF8A8FA3)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '图片最多选择 9 张，视频只能选择 1 个',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
                 ],
               ),
             ),
@@ -722,6 +1034,7 @@ class _PublishSheetState extends State<_PublishSheet> {
 
 class _TypeChip extends StatelessWidget {
   const _TypeChip({required this.label, required this.selected, required this.onTap});
+
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -737,18 +1050,316 @@ class _TypeChip extends StatelessWidget {
           color: selected ? null : const Color(0xFFF1F3F8),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : const Color(0xFF6F7480), fontWeight: FontWeight.w600)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFF6F7480),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
 }
 
-enum _PostType { text, images, video }
+class _TopicPickerSheet extends StatefulWidget {
+  const _TopicPickerSheet({required this.topics, required this.selectedTopics});
+
+  final List<_TopicItem> topics;
+  final List<_TopicItem> selectedTopics;
+
+  @override
+  State<_TopicPickerSheet> createState() => _TopicPickerSheetState();
+}
+
+class _TopicPickerSheetState extends State<_TopicPickerSheet> {
+  late final List<_TopicItem> _selected = List<_TopicItem>.from(widget.selectedTopics);
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Spacer(),
+                const Text('选择话题', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: widget.topics.map((topic) {
+                final selected = _selected.any((item) => item.id == topic.id);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (selected) {
+                        _selected.removeWhere((item) => item.id == topic.id);
+                      } else {
+                        _selected.add(topic);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: selected ? const LinearGradient(colors: [Color(0xFFEFE7FF), Color(0xFFFFECF8)]) : null,
+                      color: selected ? null : const Color(0xFFF6F7FA),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: selected ? const Color(0xFFBFA5FF) : Colors.transparent),
+                    ),
+                    child: Text(
+                      topic.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: selected ? const Color(0xFF6B57D6) : const Color(0xFF555555),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context, _selected),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7A5CFF),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('完成'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VisibilityPickerSheet extends StatelessWidget {
+  const _VisibilityPickerSheet({required this.selected});
+
+  final _VisibilityOption selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(999))),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+                const Spacer(),
+                const Text('谁能看见', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                const SizedBox(width: 72),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final option in _VisibilityOption.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(option.label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                leading: option == selected
+                    ? const Icon(Icons.check_rounded, color: Color(0xFF7A5CFF))
+                    : const SizedBox(width: 24),
+                onTap: () => Navigator.pop(context, option),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MediaPreviewGrid extends StatelessWidget {
+  const _MediaPreviewGrid({required this.mediaFiles, required this.mediaType, required this.onRemove});
+
+  final List<XFile> mediaFiles;
+  final _PostType mediaType;
+  final void Function(int index) onRemove;
+
+  bool _isVideo(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.m4v') || lower.endsWith('.avi');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (mediaFiles.isEmpty) return const SizedBox.shrink();
+
+    final isVideo = mediaType == _PostType.video || (mediaFiles.isNotEmpty && _isVideo(mediaFiles.first.path));
+    if (isVideo) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              height: 180,
+              width: double.infinity,
+              color: const Color(0xFFF2F3F7),
+              child: const Center(
+                child: Icon(Icons.videocam_rounded, size: 56, color: Color(0xFF7A5CFF)),
+              ),
+            ),
+            Container(color: Colors.black.withValues(alpha: 0.18)),
+            const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 54)),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: GestureDetector(
+                onTap: () => onRemove(0),
+                child: Container(
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                  child: const Icon(Icons.close, size: 18, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final showCount = mediaFiles.length > 9 ? 9 : mediaFiles.length;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: showCount,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final item = mediaFiles[index];
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.file(File(item.path), fit: BoxFit.cover),
+              Positioned(
+                right: 6,
+                top: 6,
+                child: GestureDetector(
+                  onTap: () => onRemove(index),
+                  child: Container(
+                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TypeChip1 extends StatelessWidget {
+  const _TypeChip1({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: selected ? const LinearGradient(colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)]) : null,
+          color: selected ? null : const Color(0xFFF1F3F8),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFF6F7480),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _PostType {
+  text(0),
+  images(1),
+  video(2);
+
+  const _PostType(this.value);
+
+  final int value;
+}
+
+enum _MediaChoice { images, video }
+
+enum _VisibilityOption {
+  all('全部', 'all'),
+  mutual('互关可见', 'mutual'),
+  fans('粉丝可见', 'fans'),
+  following('关注可见', 'following'),
+  onlySelf('仅自己', 'self');
+
+  const _VisibilityOption(this.label, this.apiValue);
+
+  final String label;
+  final String apiValue;
+}
+
+class _TopicItem {
+  const _TopicItem({required this.id, required this.name, this.hot = false});
+
+  final String id;
+  final String name;
+  final bool hot;
+}
+
+const List<_TopicItem> _availableTopics = <_TopicItem>[
+  _TopicItem(id: '1', name: '生活健身', hot: true),
+  _TopicItem(id: '2', name: '游戏分享', hot: true),
+  _TopicItem(id: '3', name: '容貌焦虑-宽图'),
+  _TopicItem(id: '4', name: '健身天地-长图'),
+  _TopicItem(id: '5', name: '旅行打卡'),
+  _TopicItem(id: '6', name: '美食日常'),
+];
 
 class _PublishResult {
-  const _PublishResult({required this.content, required this.type, required this.mediaFiles, required this.tags});
+  const _PublishResult({
+    required this.content,
+    required this.mediaFiles,
+    required this.mediaType,
+    required this.topicIds,
+    required this.visibility,
+  });
+
   final String content;
-  final _PostType type;
   final List<XFile> mediaFiles;
-  final List<String> tags;
+  final _PostType mediaType;
+  final List<String> topicIds;
+  final _VisibilityOption visibility;
 }

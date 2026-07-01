@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/post_list_response_entity.dart';
 import '../repositories/circle_repository.dart';
@@ -68,5 +69,25 @@ class CircleViewModel extends ChangeNotifier {
   Future<void> setPublishing(bool value) async {
     _isPublishing = value;
     notifyListeners();
+  }
+
+  Future<String> uploadMediaFile(XFile file) {
+    return _repository.uploadMediaFile(file);
+  }
+
+  Future<String> createCirclePost({
+    required String content,
+    required List<String> mediaUrls,
+    required int mediaType,
+    required List<String> topicIds,
+    required String visibility,
+  }) {
+    return _repository.createCirclePost(
+      content: content,
+      mediaUrls: mediaUrls,
+      mediaType: mediaType,
+      topicIds: topicIds,
+      visibility: visibility,
+    );
   }
 }

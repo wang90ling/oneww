@@ -33,4 +33,7 @@ class NetworkEndpoints {
 
   ///首页的BannerList
   static const String getBannerList = '/homePage/getBannerList';
+
+  ///发布圈子动态
+  static const String createCirclePost = '/post/create';
 }
