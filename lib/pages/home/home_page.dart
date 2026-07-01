@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/helpers/app_logger.dart';
@@ -14,6 +16,7 @@ import '../../models/query_dispatch_rooms_by_heat_response_entity.dart';
 import '../../models/recommend_request.dart';
 import '../../viewmodels/home_view_model.dart';
 import '../login/login_page.dart';
+import '../webview/webview_page.dart';
 import 'personal_detail_page.dart';
 
 /**
@@ -367,12 +370,32 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 flex: 3,
-                child: _BigBannerCard(
-                  onTap: () {},
-                  child: const SizedBox.shrink(),
+                child: FutureBuilder<BannerResposeEntity?>(
+                  future: _bannerResposeEntity,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _BigBannerCard(
+                        onTap: null,
+                        child: _BannerPlaceholder(),
+                      );
+                    }
+                    if (snapshot.hasError || snapshot.data == null || (snapshot.data?.data.isEmpty ?? true)) {
+                      return _BigBannerCard(
+                        onTap: null,
+                        child: _BannerPlaceholder(
+                          title: '热门活动',
+                          subtitle: '当前暂无 Banner 数据',
+                        ),
+                      );
+                    }
+                    final banners = snapshot.data!.data;
+                    return _BannerCarousel(
+                      banners: banners,
+                    );
+                  },
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 flex: 2,
                 child: Column(
@@ -928,11 +951,257 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
+class _BannerCarousel extends StatefulWidget {
+  const _BannerCarousel({required this.banners});
+
+  final List<BannerResposeData> banners;
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  late final PageController _pageController;
+  Timer? _timer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoPlay();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _timer?.cancel();
+    if (widget.banners.length <= 1) return;
+
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_pageController.hasClients || widget.banners.isEmpty) return;
+      final nextIndex = (_currentIndex + 1) % widget.banners.length;
+      _pageController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  String _normalizeUrl(String url) {
+    final text = url.trim();
+    if (text.isEmpty) return '';
+    if (text.startsWith('http://') || text.startsWith('https://')) return text;
+    if (text.startsWith('//')) return 'https:$text';
+    return 'https://$text';
+  }
+
+  Future<void> _openBanner(BannerResposeData banner) async {
+    final url = _normalizeUrl(banner.jumpUrl);
+    if (url.isEmpty || !mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WebViewPage(
+          url: url,
+          title: banner.recommendName.trim().isNotEmpty ? banner.recommendName.trim() : 'Banner详情',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banners = widget.banners;
+    if (banners.isEmpty) {
+      return const _BigBannerCard(onTap: null, child: _BannerPlaceholder());
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 150,
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+              _startAutoPlay();
+            },
+            itemCount: banners.length,
+            itemBuilder: (context, index) {
+              final banner = banners[index];
+              return _BigBannerCard(
+                onTap: banner.jumpUrl.trim().isEmpty ? null : () => _openBanner(banner),
+                child: _BannerImageCard(banner: banner),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(banners.length, (index) {
+            final selected = index == _currentIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: selected ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xFF7A5CFF) : const Color(0xFFD9D4E8),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF7A5CFF).withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : const [],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerPlaceholder extends StatelessWidget {
+  const _BannerPlaceholder({this.title = '热门活动', this.subtitle = '正在加载 Banner 数据'});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF7A5CFF), Color(0xFFFF6FB3)],
+            ),
+          ),
+        ),
+        Positioned(
+          right: -18,
+          top: -12,
+          child: Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 18,
+          top: 18,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 18,
+          top: 60,
+          child: Text(
+            subtitle,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+            ),
+          ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: 14,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.18),
+            ),
+            child: const Icon(
+              Icons.image_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerImageCard extends StatelessWidget {
+  const _BannerImageCard({required this.banner});
+
+  final BannerResposeData banner;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = banner.fileUrl.trim();
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (imageUrl.isNotEmpty)
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const _BannerPlaceholder(),
+          )
+        else
+          const _BannerPlaceholder(),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.black.withValues(alpha: 0.18),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BigBannerCard extends StatelessWidget {
   const _BigBannerCard({required this.child, required this.onTap});
 
   final Widget child;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -944,7 +1213,7 @@ class _BigBannerCard extends StatelessWidget {
         child: Container(
           height: 150,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(24),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -960,86 +1229,7 @@ class _BigBannerCard extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -18,
-                  top: -12,
-                  child: Container(
-                    width: 92,
-                    height: 92,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.12),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 18,
-                  top: 18,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      '热门活动',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  left: 18,
-                  top: 60,
-                  child: Text(
-                    '装扮夺宝',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  left: 18,
-                  bottom: 18,
-                  child: Text(
-                    '限时上新 · 赢限定装扮',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: 14,
-                  child: Container(
-                    width: 45,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                    child: const Icon(
-                      Icons.card_giftcard_rounded,
-                      color: Colors.white,
-                      size: 25,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: child,
           ),
         ),
       ),
