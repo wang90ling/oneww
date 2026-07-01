@@ -7,6 +7,8 @@ import 'package:flutter/material.dart' show debugPrint;
 import 'package:oneww/models/accompany_category_detail_entity.dart';
 import 'package:oneww/models/article_item_entity.dart';
 import 'package:oneww/models/banner_respose_entity.dart';
+import 'package:oneww/models/form_data_upload_request_entity.dart';
+import 'package:oneww/models/form_data_upload_response_entity.dart';
 import 'package:oneww/models/home_new_recommend_entity.dart';
 import 'package:oneww/models/play_room_response_entity.dart';
 import 'package:oneww/models/playroom_by_hot_request.dart';
@@ -327,6 +329,44 @@ class JsonConvert {
     if (<BannerResposeData>[] is M) {
       return data.map<BannerResposeData>((Map<String, dynamic> e) =>
           BannerResposeData.fromJson(e)).toList() as M;
+    }
+    if (<FormDataUploadRequestEntity>[] is M) {
+      return data.map<FormDataUploadRequestEntity>((Map<String, dynamic> e) =>
+          FormDataUploadRequestEntity.fromJson(e)).toList() as M;
+    }
+    if (<FormDataUploadResponseEntity>[] is M) {
+      return data.map<FormDataUploadResponseEntity>((Map<String, dynamic> e) =>
+          FormDataUploadResponseEntity.fromJson(e)).toList() as M;
+    }
+    if (<FormDataUploadResponseData>[] is M) {
+      return data.map<FormDataUploadResponseData>((Map<String, dynamic> e) =>
+          FormDataUploadResponseData.fromJson(e)).toList() as M;
+    }
+    if (<FormDataUploadResponseDataSignMap>[] is M) {
+      return data.map<FormDataUploadResponseDataSignMap>((
+          Map<String, dynamic> e) =>
+          FormDataUploadResponseDataSignMap.fromJson(e)).toList() as M;
+    }
+    if (<FormDataUploadResponseDataSignMapAdditionalProp1>[] is M) {
+      return data
+          .map<FormDataUploadResponseDataSignMapAdditionalProp1>((
+          Map<String, dynamic> e) =>
+          FormDataUploadResponseDataSignMapAdditionalProp1.fromJson(e))
+          .toList() as M;
+    }
+    if (<FormDataUploadResponseDataSignMapAdditionalProp2>[] is M) {
+      return data
+          .map<FormDataUploadResponseDataSignMapAdditionalProp2>((
+          Map<String, dynamic> e) =>
+          FormDataUploadResponseDataSignMapAdditionalProp2.fromJson(e))
+          .toList() as M;
+    }
+    if (<FormDataUploadResponseDataSignMapAdditionalProp3>[] is M) {
+      return data
+          .map<FormDataUploadResponseDataSignMapAdditionalProp3>((
+          Map<String, dynamic> e) =>
+          FormDataUploadResponseDataSignMapAdditionalProp3.fromJson(e))
+          .toList() as M;
     }
     if (<HomeNewRecommendEntity>[] is M) {
       return data.map<HomeNewRecommendEntity>((Map<String, dynamic> e) =>
@@ -1242,6 +1282,20 @@ class JsonConvertClassCollection {
     (ArticleItemDataDatas).toString(): ArticleItemDataDatas.fromJson,
     (BannerResposeEntity).toString(): BannerResposeEntity.fromJson,
     (BannerResposeData).toString(): BannerResposeData.fromJson,
+    (FormDataUploadRequestEntity).toString(): FormDataUploadRequestEntity
+        .fromJson,
+    (FormDataUploadResponseEntity).toString(): FormDataUploadResponseEntity
+        .fromJson,
+    (FormDataUploadResponseData).toString(): FormDataUploadResponseData
+        .fromJson,
+    (FormDataUploadResponseDataSignMap)
+        .toString(): FormDataUploadResponseDataSignMap.fromJson,
+    (FormDataUploadResponseDataSignMapAdditionalProp1)
+        .toString(): FormDataUploadResponseDataSignMapAdditionalProp1.fromJson,
+    (FormDataUploadResponseDataSignMapAdditionalProp2)
+        .toString(): FormDataUploadResponseDataSignMapAdditionalProp2.fromJson,
+    (FormDataUploadResponseDataSignMapAdditionalProp3)
+        .toString(): FormDataUploadResponseDataSignMapAdditionalProp3.fromJson,
     (HomeNewRecommendEntity).toString(): HomeNewRecommendEntity.fromJson,
     (HomeNewRecommendData).toString(): HomeNewRecommendData.fromJson,
     (HomeNewRecommendDataRecords).toString(): HomeNewRecommendDataRecords
