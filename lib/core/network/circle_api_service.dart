@@ -1,7 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import '../../models/form_data_upload_request_entity.dart';
+import '../../models/form_data_upload_response_entity.dart';
+import '../../models/new_circle_request.dart';
+import '../../models/post_list_response_entity.dart';
 import '../../utils/network_endpoints.dart';
+import '../helpers/app_logger.dart';
 import '../helpers/auth_storage.dart';
 import 'network_client.dart';
 
@@ -9,6 +14,40 @@ class CircleApiService {
   CircleApiService({NetworkClient? client}) : _client = client ?? NetworkClient();
 
   final NetworkClient _client;
+
+  ///圈子列表显示
+  Future<PostListResponseEntity> getNewPostList(NewCircleRequest req) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/post/newPostList');
+    final response = await _client.postJson(
+      uri,
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-device': 'APP',
+        if (token != null && token.isNotEmpty) 'authorization': token,
+      },
+      body: req.toJson(),
+    );
+
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final entity = PostListResponseEntity.fromJson(data);
+      entity.data = entity.data ?? <PostListResponseData>[];
+      return entity;
+    }
+
+    if (data is List) {
+      return PostListResponseEntity(
+        data: data
+            .whereType<Map<String, dynamic>>()
+            .map(PostListResponseData.fromJson)
+            .toList(),
+      );
+    }
+
+    return PostListResponseEntity(data: <PostListResponseData>[]);
+  }
 
   Future<String?> _resolveToken() async {
     final token = await AuthStorage.getToken();
@@ -26,6 +65,34 @@ class CircleApiService {
   }
 
   ///上传图片使用的阿里云服务（存储上传的图片和视频，上传成功，阿里云服务会返回图片/视频的资源路径）
+  Future<FormDataUploadResponseEntity> formDataUpload(FormDataUploadRequestEntity req) async {
+    final token = await _resolveToken();
+    final uri = Uri.parse(
+      '${NetworkEndpoints.appBaseUrl}/file/formDataUpload',
+    );
+    AppLogger.info('上传图片: $uri, body: ${req.toJson()}', tag: 'ApiService');
+    final response = await _client.postJson(
+      uri,
+      headers: <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-device': 'APP',
+        if (token != null && token.isNotEmpty) 'authorization': token,
+      },
+      body: req.toJson(),
+    );
+
+    final data = response['data'];
+    AppLogger.info('formDataUpload data:$data', tag: 'wangling');
+    if (data is Map<String, dynamic>) {
+      return FormDataUploadResponseEntity.fromJson(response);
+    }
+    throw const FormatException('Invalid accompany category detail response');
+  }
+
+
+
+
 
 
 

@@ -3,7 +3,7 @@ import 'package:oneww/models/form_data_upload_request_entity.dart';
 
 FormDataUploadRequestEntity $FormDataUploadRequestEntityFromJson(
     Map<String, dynamic> json) {
-  final FormDataUploadRequestEntity formDataUploadRequestEntity = FormDataUploadRequestEntity();
+  final FormDataUploadRequestEntity formDataUploadRequestEntity = FormDataUploadRequestEntity(bucketType: 'ACCOMPANY', fileName: '');
   final String? bucketType = jsonConvert.convert<String>(json['bucketType']);
   if (bucketType != null) {
     formDataUploadRequestEntity.bucketType = bucketType;
@@ -28,7 +28,7 @@ extension FormDataUploadRequestEntityExtension on FormDataUploadRequestEntity {
     String? bucketType,
     String? fileName,
   }) {
-    return FormDataUploadRequestEntity()
+    return FormDataUploadRequestEntity(bucketType: 'ACCOMPANY', fileName: '')
       ..bucketType = bucketType ?? this.bucketType
       ..fileName = fileName ?? this.fileName;
   }

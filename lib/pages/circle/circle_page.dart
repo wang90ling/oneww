@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/form_data_upload_request_entity.dart';
+import '../../models/form_data_upload_response_entity.dart';
 import '../../models/post_list_response_entity.dart';
 import '../../repositories/circle_repository.dart';
 import '../../viewmodels/circle_view_model.dart';
@@ -19,14 +21,23 @@ class CirclePage extends StatefulWidget {
   State<CirclePage> createState() => _CirclePageState();
 }
 
+
+
 class _CirclePageState extends State<CirclePage> {
   late final CircleViewModel _viewModel;
   final ScrollController _scrollController = ScrollController();
+
+  late Future<FormDataUploadResponseEntity?> _formDataUploadResponse;
 
   @override
   void initState() {
     super.initState();
     _viewModel = CircleViewModel(repository: CircleRepository())..loadLatest();
+    final request = FormDataUploadRequestEntity(
+      bucketType: 'ACCOMPANY',
+      fileName: ""
+    );
+    _formDataUploadResponse = _viewModel.formDataUpload(request);
   }
 
   @override

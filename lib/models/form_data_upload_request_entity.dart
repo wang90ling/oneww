@@ -5,10 +5,10 @@ export 'package:oneww/generated/json/form_data_upload_request_entity.g.dart';
 
 @JsonSerializable()
 class FormDataUploadRequestEntity {
-	String bucketType = '';
+	String bucketType = 'ACCOMPANY';
 	String fileName = '';
 
-	FormDataUploadRequestEntity();
+	FormDataUploadRequestEntity({required String bucketType, required String fileName});
 
 	factory FormDataUploadRequestEntity.fromJson(Map<String, dynamic> json) => $FormDataUploadRequestEntityFromJson(json);
 

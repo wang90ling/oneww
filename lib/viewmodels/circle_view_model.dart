@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../core/network/network_client.dart';
+import '../models/form_data_upload_request_entity.dart';
+import '../models/form_data_upload_response_entity.dart';
 import '../models/post_list_response_entity.dart';
 import '../repositories/circle_repository.dart';
 import 'view_state.dart';
@@ -21,6 +24,8 @@ class CircleViewModel extends ChangeNotifier {
   List<PostListResponseData> get posts => _posts;
   int get selectedTabIndex => _selectedTabIndex;
   bool get isPublishing => _isPublishing;
+
+  FormDataUploadResponseEntity? _formDataUploadResponseEntity;
 
   Future<void> loadLatest() async {
     _status = ViewStatus.loading;
@@ -89,5 +94,27 @@ class CircleViewModel extends ChangeNotifier {
       topicIds: topicIds,
       visibility: visibility,
     );
+  }
+
+
+  ///上传图片和视频
+  Future<FormDataUploadResponseEntity?> formDataUpload(FormDataUploadRequestEntity req) async {
+    _status = ViewStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final detail = await _repository.formDataUpload(req);
+      _formDataUploadResponseEntity = detail;
+      _status = ViewStatus.success;
+      notifyListeners();
+      return detail;
+    } on UnauthorizedException {
+      rethrow;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _status = ViewStatus.error;
+      notifyListeners();
+      rethrow;
+    }
   }
 }
