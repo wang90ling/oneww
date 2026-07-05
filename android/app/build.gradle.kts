@@ -4,6 +4,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+dependencies {
+    implementation("com.aliyun.dpa:oss-android-sdk:2.9.21")
+}
+
 android {
     namespace = "com.example.oneww"
     compileSdk = flutter.compileSdkVersion
