@@ -1,4 +1,4 @@
-package com.example.oneww
+package com.example.oneww.oss
 
 data class StsConfig(
     val endpoint: String,

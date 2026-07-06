@@ -1,5 +1,7 @@
 package com.example.oneww
 
+import com.example.oneww.oss.OssUploader
+import com.example.oneww.oss.StsConfig
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel

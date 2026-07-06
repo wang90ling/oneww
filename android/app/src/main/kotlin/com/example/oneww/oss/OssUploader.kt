@@ -1,4 +1,4 @@
-package com.example.oneww
+package com.example.oneww.oss
 
 import android.content.Context
 import com.alibaba.sdk.android.oss.ClientConfiguration
@@ -8,6 +8,11 @@ import com.alibaba.sdk.android.oss.model.PutObjectRequest
 import java.io.File
 import java.util.Locale
 
+/**
+ * @author wangling
+ * @date 2026/7/6 15:26
+ * @description 阿里云oss图片/视频上传到阿里云
+ */
 class OssUploader(private val context: Context) {
     fun uploadFile(
         filePath: String,
