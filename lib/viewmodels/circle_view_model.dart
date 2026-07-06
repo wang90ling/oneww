@@ -76,8 +76,13 @@ class CircleViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> uploadMediaFile(XFile file) {
-    return _repository.uploadMediaFile(file);
+  Future<String> uploadMediaFile(XFile file) async {
+    final uploadResponse = _formDataUploadResponseEntity;
+    if (uploadResponse == null) {
+      throw StateError('OSS credential not loaded');
+    }
+    final config = _repository.toOssUploadConfig(uploadResponse);
+    return _repository.uploadMediaFile(file, config: config);
   }
 
   Future<String> createCirclePost({

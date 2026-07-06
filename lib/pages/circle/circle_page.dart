@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -7,7 +8,6 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/form_data_upload_request_entity.dart';
-import '../../models/form_data_upload_response_entity.dart';
 import '../../models/post_list_response_entity.dart';
 import '../../repositories/circle_repository.dart';
 import '../../viewmodels/circle_view_model.dart';
@@ -26,22 +26,25 @@ class CirclePage extends StatefulWidget {
 class _CirclePageState extends State<CirclePage> {
   late final CircleViewModel _viewModel;
   final ScrollController _scrollController = ScrollController();
-
-  late Future<FormDataUploadResponseEntity?> _formDataUploadResponse;
+  StreamSubscription<double>? _uploadProgressSub;
+  double _uploadProgress = 0.0;
+  bool _isUploadingMedia = false;
 
   @override
   void initState() {
     super.initState();
     _viewModel = CircleViewModel(repository: CircleRepository())..loadLatest();
+    // 预热一次 OSS 凭证，避免首次发布时等待更久。
     final request = FormDataUploadRequestEntity(
       bucketType: 'ACCOMPANY',
-      fileName: ""
+      fileName: '',
     );
-    _formDataUploadResponse = _viewModel.formDataUpload(request);
+    _viewModel.formDataUpload(request);
   }
 
   @override
   void dispose() {
+    _uploadProgressSub?.cancel();
     _scrollController.dispose();
     _viewModel.dispose();
     super.dispose();
@@ -59,6 +62,16 @@ class _CirclePageState extends State<CirclePage> {
 
     await _viewModel.setPublishing(true);
     try {
+      if (result.mediaFiles.isNotEmpty) {
+        final uploadReq = FormDataUploadRequestEntity(
+          bucketType: 'ACCOMPANY',
+          fileName: result.mediaFiles.first.name,
+        );
+        await _viewModel.formDataUpload(uploadReq);
+      }
+
+      await _startUploadProgressListener();
+
       final uploadedUrls = <String>[];
       for (final file in result.mediaFiles) {
         uploadedUrls.add(await _viewModel.uploadMediaFile(file));
@@ -87,6 +100,24 @@ class _CirclePageState extends State<CirclePage> {
         await _viewModel.setPublishing(false);
       }
     }
+  }
+
+  Future<void> _startUploadProgressListener() async {
+    await _uploadProgressSub?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _uploadProgress = 0.0;
+      _isUploadingMedia = true;
+    });
+    _uploadProgressSub = Stream<double>.periodic(
+      const Duration(milliseconds: 200),
+      (tick) => ((tick + 1) * 0.05).clamp(0.0, 0.95),
+    ).listen((progress) {
+      if (!mounted) return;
+      setState(() {
+        _uploadProgress = progress;
+      });
+    });
   }
 
   void _openComments(PostListResponseData post) {

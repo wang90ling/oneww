@@ -67,10 +67,8 @@ class CircleApiService {
   ///上传图片使用的阿里云服务（存储上传的图片和视频，上传成功，阿里云服务会返回图片/视频的资源路径）
   Future<FormDataUploadResponseEntity> formDataUpload(FormDataUploadRequestEntity req) async {
     final token = await _resolveToken();
-    final uri = Uri.parse(
-      '${NetworkEndpoints.appBaseUrl}/file/formDataUpload',
-    );
-    AppLogger.info('上传图片: $uri, body: ${req.toJson()}', tag: 'ApiService');
+    final uri = Uri.parse('${NetworkEndpoints.appBaseUrl}/file/formDataUpload');
+    AppLogger.info('formDataUpload request: $uri, body: ${req.toJson()}', tag: 'ApiService');
     final response = await _client.postJson(
       uri,
       headers: <String, String>{
@@ -82,12 +80,12 @@ class CircleApiService {
       body: req.toJson(),
     );
 
-    final data = response['data'];
-    AppLogger.info('formDataUpload data:$data', tag: 'wangling');
-    if (data is Map<String, dynamic>) {
-      return FormDataUploadResponseEntity.fromJson(response);
+    AppLogger.info('formDataUpload response: $response', tag: 'ApiService');
+    final entity = FormDataUploadResponseEntity.fromJson(response);
+    if (entity.data.secretId.isEmpty || entity.data.secretKey.isEmpty || entity.data.sessionToken.isEmpty) {
+      throw const FormatException('Invalid OSS credential response');
     }
-    throw const FormatException('Invalid accompany category detail response');
+    return entity;
   }
 
 

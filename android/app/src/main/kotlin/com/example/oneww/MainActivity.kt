@@ -1,5 +1,6 @@
 package com.example.oneww
 
+import android.util.Log
 import com.example.oneww.oss.OssUploader
 import com.example.oneww.oss.StsConfig
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -39,8 +40,13 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "uploadFile" -> {
-                        val path = call.argument<String>("path")
-                        val fileName = call.argument<String>("fileName")
+                        val path = call.argument<String>("path") as String
+                        val fileName = call.argument<String>("fileName") as String
+                        val secretId = call.argument<String>("secretId") as String
+                        val accessKeySecret = call.argument<String>("accessKeySecret") as String
+                        val securityToken = call.argument<String>("securityToken") as String
+                        val endpoint = call.argument<String>("endpoint") as String
+                        Log.d("wangling","secretId:"+secretId+",accessKeySecret:"+accessKeySecret+",securityToken:"+securityToken)
 
                         if (path.isNullOrBlank()) {
                             result.error("BAD_PATH", "path is empty", null)
@@ -50,7 +56,8 @@ class MainActivity : FlutterFragmentActivity() {
                         thread(name = "oss-upload-thread") {
                             try {
                                 postProgress(0.05)
-                                val stsConfig = fetchStsConfig()
+                                val stsConfig = fetchStsConfig(secretId,accessKeySecret,securityToken,endpoint);
+                                Log.d("wangling", "stsConfig:"+stsConfig.toString())
                                 postProgress(0.2)
 
                                 val url = ossUploader.uploadFile(
@@ -83,14 +90,15 @@ class MainActivity : FlutterFragmentActivity() {
         progressSink?.success(value.coerceIn(0.0, 1.0))
     }
 
-    private fun fetchStsConfig(): StsConfig {
+    private fun fetchStsConfig(secretId: String,accessKeySecret: String,
+                               securityToken: String,endpoint: String): StsConfig {
         // TODO 替换为真实后端接口返回的 STS 临时凭证
         return StsConfig(
-            endpoint = "oss-cn-hangzhou.aliyuncs.com",
-            bucketName = "your-bucket",
-            accessKeyId = "tempAccessKeyId",
-            accessKeySecret = "tempAccessKeySecret",
-            securityToken = "tempSecurityToken"
+            endpoint = "dianta-app-1334254576",
+            bucketName = "ap-beijing",
+            accessKeyId = secretId,
+            accessKeySecret = accessKeySecret,
+            securityToken = securityToken
         )
     }
 

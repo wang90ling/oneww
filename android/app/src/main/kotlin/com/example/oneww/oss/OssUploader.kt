@@ -1,6 +1,7 @@
 package com.example.oneww.oss
 
 import android.content.Context
+import android.util.Log
 import com.alibaba.sdk.android.oss.ClientConfiguration
 import com.alibaba.sdk.android.oss.OSSClient
 import com.alibaba.sdk.android.oss.common.auth.OSSStsTokenCredentialProvider
@@ -39,6 +40,7 @@ class OssUploader(private val context: Context) {
 
         val ossClient = OSSClient(context, config.endpoint, credentialProvider, clientConfig)
         val request = PutObjectRequest(config.bucketName, objectKey, filePath)
+        Log.d("wangling","PutObjectRequest request:"+request.toString())
 
         onProgress?.invoke(0.35)
         ossClient.putObject(request)
