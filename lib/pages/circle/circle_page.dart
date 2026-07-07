@@ -34,7 +34,7 @@ class _CirclePageState extends State<CirclePage> {
   void initState() {
     super.initState();
     _viewModel = CircleViewModel(repository: CircleRepository())..loadLatest();
-    // 预热一次 OSS 凭证，避免首次发布时等待更久。
+    // 预热一次 COS 凭证，避免首次发布时等待更久。
     final request = FormDataUploadRequestEntity(
       bucketType: 'ACCOMPANY',
       fileName: '',

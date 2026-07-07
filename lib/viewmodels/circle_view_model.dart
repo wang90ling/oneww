@@ -79,9 +79,9 @@ class CircleViewModel extends ChangeNotifier {
   Future<String> uploadMediaFile(XFile file) async {
     final uploadResponse = _formDataUploadResponseEntity;
     if (uploadResponse == null) {
-      throw StateError('OSS credential not loaded');
+      throw StateError('COS credential not loaded');
     }
-    final config = _repository.toOssUploadConfig(uploadResponse);
+    final config = _repository.toCosUploadConfig(uploadResponse);
     return _repository.uploadMediaFile(file, config: config);
   }
 

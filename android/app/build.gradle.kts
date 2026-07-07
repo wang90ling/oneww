@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation("com.aliyun.dpa:oss-android-sdk:2.9.21")
+    implementation("com.qcloud.cos:cos-android-nobeacon:5.9.46")
 }
 
 android {

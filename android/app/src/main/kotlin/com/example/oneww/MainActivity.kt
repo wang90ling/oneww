@@ -1,8 +1,8 @@
 package com.example.oneww
 
 import android.util.Log
-import com.example.oneww.oss.OssUploader
-import com.example.oneww.oss.StsConfig
+import com.example.oneww.cos.CosUploadConfig
+import com.example.oneww.cos.CosUploader
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -11,17 +11,17 @@ import kotlin.concurrent.thread
 
 class MainActivity : FlutterFragmentActivity() {
     private companion object {
-        const val UPLOAD_CHANNEL = "aliyun_oss_upload"
-        const val PROGRESS_CHANNEL = "aliyun_oss_upload_progress"
+        const val UPLOAD_CHANNEL = "tencent_cos_upload"
+        const val PROGRESS_CHANNEL = "tencent_cos_upload_progress"
     }
 
     private var progressSink: EventChannel.EventSink? = null
-    private lateinit var ossUploader: OssUploader
+    private lateinit var cosUploader: CosUploader
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        ossUploader = OssUploader(applicationContext)
+        cosUploader = CosUploader(applicationContext)
 
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, PROGRESS_CHANNEL)
             .setStreamHandler(
@@ -40,30 +40,40 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "uploadFile" -> {
-                        val path = call.argument<String>("path") as String
-                        val fileName = call.argument<String>("fileName") as String
-                        val secretId = call.argument<String>("secretId") as String
-                        val accessKeySecret = call.argument<String>("accessKeySecret") as String
-                        val securityToken = call.argument<String>("securityToken") as String
-                        val endpoint = call.argument<String>("endpoint") as String
-                        Log.d("wangling","secretId:"+secretId+",accessKeySecret:"+accessKeySecret+",securityToken:"+securityToken)
+                        val path = call.argument<String>("path")
+                        val fileName = call.argument<String>("fileName")
+                        val secretId = call.argument<String>("secretId")
+                        val secretKey = call.argument<String>("secretKey")
+                        val sessionToken = call.argument<String>("sessionToken")
+                        val region = call.argument<String>("region")
+                        val bucket = call.argument<String>("bucket")
+                        val objectKey = call.argument<String>("objectKey")
 
-                        if (path.isNullOrBlank()) {
-                            result.error("BAD_PATH", "path is empty", null)
+                        Log.d("wangling", "secretId=$secretId, secretKey=$secretKey, sessionToken=$sessionToken, region=$region, bucket=$bucket, objectKey=$objectKey")
+
+                        if (path.isNullOrBlank() || fileName.isNullOrBlank() || secretId.isNullOrBlank() || secretKey.isNullOrBlank() || sessionToken.isNullOrBlank() || region.isNullOrBlank() || bucket.isNullOrBlank()) {
+                            result.error("INVALID_ARGS", "Missing upload arguments", null)
                             return@setMethodCallHandler
                         }
 
-                        thread(name = "oss-upload-thread") {
+                        thread(name = "cos-upload-thread") {
                             try {
                                 postProgress(0.05)
-                                val stsConfig = fetchStsConfig(secretId,accessKeySecret,securityToken,endpoint);
-                                Log.d("wangling", "stsConfig:"+stsConfig.toString())
+                                val cosConfig = CosUploadConfig(
+                                    secretId = secretId,
+                                    secretKey = secretKey,
+                                    sessionToken = sessionToken,
+                                    region = region,
+                                    bucket = bucket,
+                                )
+                                Log.d("wangling", "cosConfig=$cosConfig")
                                 postProgress(0.2)
 
-                                val url = ossUploader.uploadFile(
+                                val url = cosUploader.uploadFile(
                                     filePath = path,
                                     fileName = fileName,
-                                    config = stsConfig,
+                                    config = cosConfig,
+                                    objectKey = objectKey,
                                     onProgress = { progress -> postProgress(progress) }
                                 )
 
@@ -88,18 +98,6 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun postProgress(value: Double) {
         progressSink?.success(value.coerceIn(0.0, 1.0))
-    }
-
-    private fun fetchStsConfig(secretId: String,accessKeySecret: String,
-                               securityToken: String,endpoint: String): StsConfig {
-        // TODO 替换为真实后端接口返回的 STS 临时凭证
-        return StsConfig(
-            endpoint = "dianta-app-1334254576",
-            bucketName = "ap-beijing",
-            accessKeyId = secretId,
-            accessKeySecret = accessKeySecret,
-            securityToken = securityToken
-        )
     }
 
     override fun onDestroy() {

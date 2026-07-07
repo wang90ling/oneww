@@ -3,6 +3,7 @@ allprojects {
         google()
         mavenCentral()
         maven("https://maven.aliyun.com/repository/public")
+        maven("https://mirrors.tencent.com/nexus/repository/maven-public/")
     }
 }
 
