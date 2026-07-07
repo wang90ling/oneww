@@ -61,8 +61,9 @@ class CosUploader(private val context: Context) {
         val result = cosXmlService.putObject(request)
         onProgress?.invoke(0.95)
 
-        Log.d("wangling", "COS upload success: ${result.httpCode}")
-        return buildFileUrl(config.region, config.bucket, finalObjectKey)
+        val accessUrl = buildFileUrl(config.region, config.bucket, finalObjectKey)
+        Log.d("wangling", "COS upload success, eTag=${result.eTag}, url=$accessUrl")
+        return accessUrl
     }
 
     private fun buildObjectKey(originalName: String): String {
