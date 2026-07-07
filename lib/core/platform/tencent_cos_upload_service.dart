@@ -2,6 +2,10 @@ import 'package:flutter/services.dart';
 
 import '../../repositories/circle_repository.dart';
 
+/**
+ * 腾讯云cos图片/视频资源上传
+ * wangling
+ */
 class TencentCosUploadService {
   TencentCosUploadService._();
 

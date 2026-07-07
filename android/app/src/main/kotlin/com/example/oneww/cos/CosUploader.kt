@@ -10,6 +10,11 @@ import com.tencent.qcloud.core.auth.QCloudCredentials
 import com.tencent.qcloud.core.auth.SessionQCloudCredentials
 import java.io.File
 
+/**
+ * @author wangling
+ * @date 2026/7/7 14:49
+ * @description 腾讯云cos图片和视频上传功能实现
+ */
 class CosUploader(private val context: Context) {
     fun uploadFile(
         filePath: String,
