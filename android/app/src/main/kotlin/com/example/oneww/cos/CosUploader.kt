@@ -4,17 +4,19 @@ import android.content.Context
 import android.util.Log
 import com.tencent.cos.xml.CosXmlService
 import com.tencent.cos.xml.CosXmlServiceConfig
+import com.tencent.cos.xml.exception.CosXmlClientException
+import com.tencent.cos.xml.exception.CosXmlServiceException
+import com.tencent.cos.xml.listener.CosXmlProgressListener
+import com.tencent.cos.xml.listener.CosXmlResultListener
+import com.tencent.cos.xml.model.CosXmlRequest
+import com.tencent.cos.xml.model.CosXmlResult
 import com.tencent.cos.xml.model.`object`.PutObjectRequest
+import com.tencent.cos.xml.model.`object`.UploadPartRequest
 import com.tencent.qcloud.core.auth.QCloudCredentialProvider
 import com.tencent.qcloud.core.auth.QCloudCredentials
 import com.tencent.qcloud.core.auth.SessionQCloudCredentials
 import java.io.File
 
-/**
- * @author wangling
- * @date 2026/7/7 14:49
- * @description 腾讯云cos图片和视频上传功能实现
- */
 class CosUploader(private val context: Context) {
     fun uploadFile(
         filePath: String,
@@ -53,17 +55,50 @@ class CosUploader(private val context: Context) {
             override fun refresh() {}
         }
 
-        val cosXmlService = CosXmlService(context, cosConfig, credentialProvider)
+        val cosService = CosXmlService(context, cosConfig, credentialProvider)
 
-        val request = PutObjectRequest(config.bucket, finalObjectKey, filePath)
+        val putRequest = PutObjectRequest(config.bucket, finalObjectKey, filePath)
+        putRequest.setProgressListener(object : CosXmlProgressListener {
+            override fun onProgress(complete: Long, target: Long) {
+                val progress = if (target > 0) complete.toDouble() / target.toDouble() else 0.0
+                onProgress?.invoke(progress)
+                Log.d("wangling", "COS upload progress: ${(progress * 100).toInt()}%")
+            }
+        })
 
-        onProgress?.invoke(0.3)
-        val result = cosXmlService.putObject(request)
-        onProgress?.invoke(0.95)
+        val resultUrl = arrayOfNulls<String>(1)
+        val exception = arrayOfNulls<Exception>(1)
+        val lock = Object()
 
-        val accessUrl = buildFileUrl(config.region, config.bucket, finalObjectKey)
-        Log.d("wangling", "COS upload success, eTag=${result.eTag}, url=$accessUrl")
-        return accessUrl
+        cosService.putObjectAsync(putRequest, object : CosXmlResultListener {
+            override fun onSuccess(request: CosXmlRequest, result: CosXmlResult) {
+                val accessUrl = buildFileUrl(config.region, config.bucket, finalObjectKey)
+                resultUrl[0] = accessUrl
+                Log.d("wangling", "COS upload success: cosPath=$finalObjectKey, url=$accessUrl")
+                synchronized(lock) { lock.notify() }
+            }
+
+            override fun onFail(request: CosXmlRequest, clientException: CosXmlClientException?, serviceException: CosXmlServiceException?) {
+                val error = serviceException ?: clientException
+                Log.e("wangling", "COS upload fail: cosErrorCode=${error?.message}", error)
+                exception[0] = error as? Exception ?: RuntimeException("Upload failed")
+                synchronized(lock) { lock.notify() }
+            }
+        })
+
+        synchronized(lock) {
+            try {
+                lock.wait(60000)
+            } catch (e: InterruptedException) {
+                throw RuntimeException("Upload timeout", e)
+            }
+        }
+
+        if (exception[0] != null) {
+            throw exception[0]!!
+        }
+
+        return resultUrl[0] ?: throw RuntimeException("Upload result is null")
     }
 
     private fun buildObjectKey(originalName: String): String {

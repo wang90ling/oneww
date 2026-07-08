@@ -63,24 +63,17 @@ class _CirclePageState extends State<CirclePage> {
 
     await _viewModel.setPublishing(true);
     try {
-      if (result.mediaFiles.isNotEmpty) {
-        final uploadReq = FormDataUploadRequestEntity(
-          bucketType: 'ACCOMPANY',
-          fileName: result.mediaFiles.first.name,
-        );
-        await _viewModel.formDataUpload(uploadReq);
-      }
-
       await _startUploadProgressListener();
 
-      final uploadedUrls = <String>[];
+      final uploadedObjectKeys = <String>[];
       for (final file in result.mediaFiles) {
-        uploadedUrls.add(await _viewModel.uploadMediaFile(file));
+        uploadedObjectKeys.add(await _viewModel.uploadMediaFile(file));
       }
+      AppLogger.info('【CirclePublish】uploadedObjectKeys=$uploadedObjectKeys, mediaType=${result.mediaType.value}', tag: 'wangling');
 
       await _viewModel.createCirclePost(
         content: result.content,
-        mediaUrls: uploadedUrls,
+        mediaUrls: uploadedObjectKeys,
         mediaType: result.mediaType.value,
         topicIds: result.topicIds,
         visibility: result.visibility.apiValue,

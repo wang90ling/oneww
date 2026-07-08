@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:image_picker/image_picker.dart';
 
 import '../core/helpers/app_logger.dart';
-import '../core/network/api_service.dart';
 import '../core/network/circle_api_service.dart';
 import '../core/platform/tencent_cos_upload_service.dart';
 import '../models/form_data_upload_request_entity.dart';
@@ -27,6 +24,33 @@ class CosUploadConfig {
   final String region;
   final String bucket;
   final String? objectKey;
+
+  String get fileUrlPrefix => 'https://$bucket.cos.$region.myqcloud.com/';
+
+  String toFullUrl(String? objectKey) {
+    if (objectKey == null || objectKey.isEmpty) return '';
+    if (objectKey.startsWith('http://') || objectKey.startsWith('https://')) {
+      return objectKey;
+    }
+    return '$fileUrlPrefix${objectKey.startsWith('/') ? objectKey.substring(1) : objectKey}';
+  }
+
+  String? extractObjectKey(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return url;
+    }
+    try {
+      final uri = Uri.parse(url);
+      final path = uri.path;
+      if (path.startsWith('/')) {
+        return path.substring(1);
+      }
+      return path;
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 ///圈子接口对接
@@ -34,8 +58,24 @@ class CircleRepository {
   CircleRepository({CircleApiService? apiService}) : _circleApiService = apiService ?? CircleApiService();
 
   final CircleApiService _circleApiService;
+  CosUploadConfig? _lastCosConfig;
+
+  CosUploadConfig? get lastCosConfig => _lastCosConfig;
+
+  String? get lastFileUrlPrefix => _lastCosConfig?.fileUrlPrefix;
 
   Future<List<PostListResponseData>> fetchLatestCircles({int pageNo = 1, int pageSize = 20}) async {
+    if (_lastCosConfig == null) {
+      try {
+        final req = FormDataUploadRequestEntity(
+          bucketType: 'ACCOMPANY',
+          fileName: '',
+        );
+        await formDataUpload(req);
+      } catch (e) {
+        AppLogger.info('fetchLatestCircles: preload COS config failed: $e', tag: 'wangling');
+      }
+    }
     final response = await _circleApiService.getNewPostList(
       NewCircleRequest(
         pageNo: pageNo,
@@ -44,7 +84,38 @@ class CircleRepository {
         postId: '',
       ),
     );
+    AppLogger.info('fetchLatestCircles response: code=${response.code}, data.length=${response.data.length}', tag: 'wangling');
+    for (final post in response.data.take(3)) {
+      AppLogger.info('post.id=${post.id}, content=${post.content}, files=${post.files}, fileDetails=${post.fileDetails?.map((e) => e.fileUrl).toList()}', tag: 'wangling');
+    }
+    _enrichPostUrls(response.data);
+    for (final post in response.data.take(3)) {
+      AppLogger.info('after enrich - post.id=${post.id}, files=${post.files}, fileDetails=${post.fileDetails?.map((e) => e.fileUrl).toList()}', tag: 'wangling');
+    }
     return response.data;
+  }
+
+  void _enrichPostUrls(List<PostListResponseData> posts) {
+    final config = _lastCosConfig;
+    if (config == null) {
+      AppLogger.info('_enrichPostUrls: _lastCosConfig is null, skip URL enrichment', tag: 'wangling');
+      return;
+    }
+    for (final post in posts) {
+      if (post.fileDetails != null && post.fileDetails!.isNotEmpty) {
+        for (final detail in post.fileDetails!) {
+          if (detail.fileUrl != null && detail.fileUrl!.isNotEmpty) {
+            detail.fileUrl = config.toFullUrl(detail.fileUrl);
+          }
+          if (detail.firstSnapshot != null && detail.firstSnapshot!.isNotEmpty) {
+            detail.firstSnapshot = config.toFullUrl(detail.firstSnapshot);
+          }
+        }
+      }
+      if (post.files != null && post.files!.isNotEmpty) {
+        post.files = post.files!.map((url) => config.toFullUrl(url)).toList();
+      }
+    }
   }
 
 
@@ -52,6 +123,7 @@ class CircleRepository {
   Future<FormDataUploadResponseEntity> formDataUpload(FormDataUploadRequestEntity req) async {
     final response = await _circleApiService.formDataUpload(req);
     AppLogger.info('formDataUpload 成功: code=${response.code}, message=${response.message}', tag: 'wangling');
+    _lastCosConfig = toCosUploadConfig(response);
     return response;
   }
 
@@ -82,12 +154,15 @@ class CircleRepository {
   }
 
   Future<String> uploadMediaFile(XFile file, {required CosUploadConfig config}) async {
-    return TencentCosUploadService.uploadFile(
+    final fullUrl = await TencentCosUploadService.uploadFile(
       path: file.path,
       fileName: file.name,
       config: config,
       objectKey: config.objectKey,
     );
+    final objectKey = config.extractObjectKey(fullUrl) ?? config.objectKey ?? fullUrl;
+    AppLogger.info('uploadMediaFile: fullUrl=$fullUrl, objectKey=$objectKey', tag: 'wangling');
+    return objectKey;
   }
 
   String _extractCosRegion(String endpoint) {

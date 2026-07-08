@@ -31,23 +31,47 @@ class CircleApiService {
     );
 
     final data = response['data'];
-    AppLogger.info("getNewPostList data:"+data.toString(),tag: "wangling");
+    AppLogger.info('getNewPostList raw data: $data', tag: 'wangling');
     if (data is Map<String, dynamic>) {
+      AppLogger.info(
+        'getNewPostList keys: ${data.keys.join(', ')}',
+        tag: 'wangling',
+      );
       final entity = PostListResponseEntity.fromJson(data);
       entity.data = entity.data ?? <PostListResponseData>[];
+      _normalizeCirclePostFiles(entity.data);
       return entity;
     }
 
     if (data is List) {
-      return PostListResponseEntity(
+      final entity = PostListResponseEntity(
         data: data
             .whereType<Map<String, dynamic>>()
             .map(PostListResponseData.fromJson)
             .toList(),
       );
+      _normalizeCirclePostFiles(entity.data);
+      return entity;
     }
 
     return PostListResponseEntity(data: <PostListResponseData>[]);
+  }
+
+  void _normalizeCirclePostFiles(List<PostListResponseData> posts) {
+    for (final post in posts) {
+      if (post.fileDetails != null && post.fileDetails!.isNotEmpty) continue;
+      final source = post.files;
+      if (source == null || source.isEmpty) continue;
+      post.fileDetails = source
+          .map((url) {
+            final trimmed = url.trim();
+            if (trimmed.isEmpty) return null;
+            return PostListResponseDataFileDetails()
+              ..fileUrl = trimmed;
+          })
+          .whereType<PostListResponseDataFileDetails>()
+          .toList();
+    }
   }
 
   Future<String?> _resolveToken() async {
@@ -153,10 +177,12 @@ class CircleApiService {
         'content': content,
         'mediaUrls': mediaUrls,
         'mediaType': mediaType,
+        'postType': mediaType,
         'topicIds': topicIds,
         'visibility': visibility,
       },
     );
+    AppLogger.info('createCirclePost response: $response, body: mediaUrls=$mediaUrls, mediaType=$mediaType', tag: 'wangling');
 
     final message = response['message']?.toString();
     if (message != null && message.isNotEmpty) return message;

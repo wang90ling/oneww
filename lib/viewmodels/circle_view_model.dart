@@ -35,7 +35,15 @@ class CircleViewModel extends ChangeNotifier {
 
     try {
       _posts = await _repository.fetchLatestCircles();
-      print("wangling _posts:"+_posts[0].fileDetails.toString());
+      if (_posts.isNotEmpty) {
+        final firstPost = _posts.first;
+        AppLogger.info(
+          'first post parsed => fileDetails=${firstPost.fileDetails}, files=${firstPost.files}',
+          tag: 'wangling',
+        );
+      } else {
+        AppLogger.info('fetchLatestCircles returned empty posts', tag: 'wangling');
+      }
       _status = _posts.isEmpty ? ViewStatus.empty : ViewStatus.success;
       notifyListeners();
     } catch (error) {
@@ -79,10 +87,12 @@ class CircleViewModel extends ChangeNotifier {
   }
 
   Future<String> uploadMediaFile(XFile file) async {
-    final uploadResponse = _formDataUploadResponseEntity;
-    if (uploadResponse == null) {
-      throw StateError('COS credential not loaded');
-    }
+    final uploadReq = FormDataUploadRequestEntity(
+      bucketType: 'ACCOMPANY',
+      fileName: file.name,
+    );
+    final uploadResponse = await _repository.formDataUpload(uploadReq);
+    _formDataUploadResponseEntity = uploadResponse;
     final config = _repository.toCosUploadConfig(uploadResponse);
     return _repository.uploadMediaFile(file, config: config);
   }
