@@ -31,6 +31,7 @@ class CircleApiService {
     );
 
     final data = response['data'];
+    AppLogger.info("getNewPostList data:"+data.toString(),tag: "wangling");
     if (data is Map<String, dynamic>) {
       final entity = PostListResponseEntity.fromJson(data);
       entity.data = entity.data ?? <PostListResponseData>[];

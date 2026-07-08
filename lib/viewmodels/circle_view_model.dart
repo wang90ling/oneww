@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:oneww/core/helpers/app_logger.dart';
 
 import '../core/network/network_client.dart';
 import '../models/form_data_upload_request_entity.dart';
@@ -34,6 +35,7 @@ class CircleViewModel extends ChangeNotifier {
 
     try {
       _posts = await _repository.fetchLatestCircles();
+      print("wangling _posts:"+_posts[0].fileDetails.toString());
       _status = _posts.isEmpty ? ViewStatus.empty : ViewStatus.success;
       notifyListeners();
     } catch (error) {

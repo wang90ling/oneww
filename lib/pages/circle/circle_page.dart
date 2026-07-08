@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:oneww/core/helpers/app_logger.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 
@@ -314,6 +315,7 @@ class _CirclePostCard extends StatelessWidget {
   List<_MediaPreview> get _medias {
     final result = <_MediaPreview>[];
     final details = post.fileDetails ?? <PostListResponseDataFileDetails>[];
+    AppLogger.info("details:"+details.toString(),tag: "wangling");
     for (final item in details) {
       final fileUrl = (item.fileUrl ?? '').trim();
       final coverUrl = (item.firstSnapshot ?? '').trim();
