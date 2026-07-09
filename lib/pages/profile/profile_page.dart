@@ -10,6 +10,7 @@ import 'help_center_page.dart';
 import 'order_page.dart';
 import 'personal_home_page.dart';
 import 'settings_page.dart';
+import '../roomlive/mine_room_page.dart';
 import 'wallet_page.dart';
 
 /// 我的模块
@@ -180,11 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 iconAssetPath: 'assets/images/ic_me_ser_wdfj.webp',
                                 label: '我的房间',
                                 gradient: const [Color(0xFFFF62A7), Color(0xFFFF8B7A)],
-                                onTap: () => _openFeaturePage(
-                                  title: '我的房间',
-                                  subtitle: '查看你的房间、房间资料与权限',
-                                  icon: Icons.home_work_outlined,
-                                ),
+                                onTap: () => _pushPage(const MineRoomPage()),
                               ),
                               _ServiceItemData(
                                 iconAssetPath: 'assets/images/ic_me_ser_dssl.webp',
