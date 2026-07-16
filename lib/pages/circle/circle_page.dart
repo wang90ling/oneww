@@ -34,13 +34,20 @@ class _CirclePageState extends State<CirclePage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = CircleViewModel(repository: CircleRepository())..loadLatest();
-    // 预热一次 COS 凭证，避免首次发布时等待更久。
+    _viewModel = CircleViewModel(repository: CircleRepository());
+    // 预热 COS 凭证，确保在 loadLatest 之前完成
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    // 先预热 COS 配置
     final request = FormDataUploadRequestEntity(
       bucketType: 'ACCOMPANY',
       fileName: '',
     );
-    _viewModel.formDataUpload(request);
+    await _viewModel.formDataUpload(request);
+    // 确保 COS 配置加载完成后，再获取圈子列表
+    await _viewModel.loadLatest();
   }
 
   @override

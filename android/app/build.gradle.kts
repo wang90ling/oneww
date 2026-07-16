@@ -5,7 +5,25 @@ plugins {
 }
 
 dependencies {
+    // 腾讯云 COS SDK
     implementation("com.qcloud.cos:cos-android-nobeacon:5.9.46")
+
+    // OkHttp 网络库
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Gson JSON 解析
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // AndroidX Lifecycle
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("com.google.firebase:firebase-crashlytics-buildtools:3.0.7")
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
 }
 
 android {

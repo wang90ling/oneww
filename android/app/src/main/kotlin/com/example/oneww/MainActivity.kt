@@ -1,12 +1,17 @@
 package com.example.oneww
 
 import android.util.Log
-import com.example.oneww.cos.CosUploadConfig
-import com.example.oneww.cos.CosUploader
+import com.example.oneww.file.CosUploadConfig
+import com.example.oneww.file.CosUploader
+import com.example.oneww.net.ApiService
+import com.example.oneww.net.ApiState
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.concurrent.thread
 
 class MainActivity : FlutterFragmentActivity() {
@@ -35,6 +40,8 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
             )
+
+        initCosUploader()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPLOAD_CHANNEL)
             .setMethodCallHandler { call, result ->
@@ -69,16 +76,18 @@ class MainActivity : FlutterFragmentActivity() {
                                 Log.d("wangling", "cosConfig=$cosConfig")
                                 postProgress(0.2)
 
-                                val url = cosUploader.uploadFile(
+                                //首先获取上传资源的一些签名文件
+
+                               /* val url = cosUploader.uploadFile(
                                     filePath = path,
                                     fileName = fileName,
                                     config = cosConfig,
                                     objectKey = objectKey,
                                     onProgress = { progress -> postProgress(progress) }
-                                )
+                                )*/
 
                                 postProgress(1.0)
-                                runOnUiThread { result.success(url) }
+                                runOnUiThread { result.success("") }
                             } catch (e: Exception) {
                                 runOnUiThread {
                                     result.error(
@@ -98,6 +107,33 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun postProgress(value: Double) {
         progressSink?.success(value.coerceIn(0.0, 1.0))
+    }
+
+    //初始化腾讯cos文件上传逻辑
+    fun initCosUploader(){
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val apiService = ApiService.getInstance(this@MainActivity)
+
+                // 示例：获取用户信息
+                val formDataUploadResult = apiService.formDataUpload()
+                when (formDataUploadResult) {
+                    is ApiState.Success -> {
+                        val userData = formDataUploadResult.data
+                        Log.d("wangling", "formDataUpload信息: $userData")
+                    }
+                    is ApiState.Error -> {
+                        Log.e("wangling", "获取formDataUpload信息失败: ${formDataUploadResult.message}")
+                    }
+                    is ApiState.Exception -> {
+                        Log.e("wangling", "获取formDataUpload信息异常: ${formDataUploadResult.throwable.message}")
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e("Demo", "API 调用异常", e)
+            }
+        }
     }
 
     override fun onDestroy() {

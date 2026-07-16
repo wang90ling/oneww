@@ -73,7 +73,9 @@ class CircleRepository {
         );
         await formDataUpload(req);
       } catch (e) {
-        AppLogger.info('fetchLatestCircles: preload COS config failed: $e', tag: 'wangling');
+        AppLogger.info('fetchLatestCircles: preload COS config failed: $e, will try with default config', tag: 'wangling');
+        // 使用默认配置尝试加载列表
+        _lastCosConfig = _createDefaultCosConfig();
       }
     }
     final response = await _circleApiService.getNewPostList(
@@ -95,6 +97,17 @@ class CircleRepository {
     return response.data;
   }
 
+  CosUploadConfig _createDefaultCosConfig() {
+    return CosUploadConfig(
+      secretId: '',
+      secretKey: '',
+      sessionToken: '',
+      region: 'ap-beijing',
+      bucket: 'dianta-app-1334254576',
+      objectKey: null,
+    );
+  }
+
   void _enrichPostUrls(List<PostListResponseData> posts) {
     final config = _lastCosConfig;
     if (config == null) {
@@ -102,18 +115,33 @@ class CircleRepository {
       return;
     }
     for (final post in posts) {
+      AppLogger.info('_enrichPostUrls processing post.id=${post.id}, fileDetails count=${post.fileDetails?.length}, files count=${post.files?.length}', tag: 'wangling');
       if (post.fileDetails != null && post.fileDetails!.isNotEmpty) {
         for (final detail in post.fileDetails!) {
+          final originalUrl = detail.fileUrl;
           if (detail.fileUrl != null && detail.fileUrl!.isNotEmpty) {
-            detail.fileUrl = config.toFullUrl(detail.fileUrl);
+            // 如果已经是完整 URL，跳过
+            if (!detail.fileUrl!.startsWith('http://') && !detail.fileUrl!.startsWith('https://')) {
+              detail.fileUrl = config.toFullUrl(detail.fileUrl);
+              AppLogger.info('_enrichPostUrls: enriched fileUrl from "$originalUrl" to "${detail.fileUrl}"', tag: 'wangling');
+            } else {
+              AppLogger.info('_enrichPostUrls: fileUrl already full URL: "$originalUrl"', tag: 'wangling');
+            }
           }
           if (detail.firstSnapshot != null && detail.firstSnapshot!.isNotEmpty) {
-            detail.firstSnapshot = config.toFullUrl(detail.firstSnapshot);
+            if (!detail.firstSnapshot!.startsWith('http://') && !detail.firstSnapshot!.startsWith('https://')) {
+              detail.firstSnapshot = config.toFullUrl(detail.firstSnapshot);
+            }
           }
         }
       }
       if (post.files != null && post.files!.isNotEmpty) {
-        post.files = post.files!.map((url) => config.toFullUrl(url)).toList();
+        post.files = post.files!.map((url) {
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+          }
+          return config.toFullUrl(url);
+        }).toList();
       }
     }
   }

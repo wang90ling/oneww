@@ -1,4 +1,4 @@
-package com.example.oneww.cos
+package com.example.oneww.file
 
 data class CosUploadConfig(
     val secretId: String,
