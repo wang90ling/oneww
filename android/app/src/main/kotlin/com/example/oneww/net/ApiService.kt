@@ -1,7 +1,10 @@
 package com.example.oneww.net
 
 import android.content.Context
+import android.media.tv.interactive.AppLinkInfo
+import android.util.Log
 import com.example.oneww.config.ApiConfig
+import com.example.oneww.utils.TokenStorage
 import org.json.JSONObject
 
 /**
@@ -28,75 +31,12 @@ class ApiService private constructor(context: Context) {
 
     // ==================== 用户相关接口 ====================
 
-
-
     /**
      * 获取用户详情
      */
     suspend fun getUserInfo(): ApiState<JSONObject?> {
         val url = "$baseUrl/user/detail"
         val result = httpClient.get(url, null, null) { json ->
-            json.optJSONObject("data")
-        }
-        @Suppress("UNCHECKED_CAST")
-        return result as ApiState<JSONObject?>
-    }
-
-
-    // ==================== 圈子相关接口 ====================
-
-    /**
-     * 获取圈子动态列表
-     * @param pageNo 页码
-     * @param pageSize 每页数量
-     * @param endTime 结束时间（用于分页）
-     * @param postId 帖子ID（用于分页）
-     */
-    suspend fun getPostList(
-        pageNo: Int = 1,
-        pageSize: Int = 20,
-        endTime: String = "",
-        postId: String = ""
-    ): ApiState<JSONObject?> {
-        val url = "$baseUrl/post/newPostList"
-        val params = mapOf(
-            "pageNo" to pageNo,
-            "pageSize" to pageSize,
-            "endTime" to endTime,
-            "postId" to postId
-        )
-        val result = httpClient.postJson(url, params, null) { json ->
-            json.optJSONObject("data")
-        }
-        @Suppress("UNCHECKED_CAST")
-        return result as ApiState<JSONObject?>
-    }
-
-    /**
-     * 发布圈子动态
-     * @param content 内容
-     * @param mediaUrls 媒体URL列表
-     * @param mediaType 媒体类型：0-无，1-图片，2-视频
-     * @param topicIds 话题ID列表
-     * @param visibility 可见范围
-     */
-    suspend fun createPost(
-        content: String,
-        mediaUrls: List<String> = emptyList(),
-        mediaType: Int = 0,
-        topicIds: List<String> = emptyList(),
-        visibility: String = "all"
-    ): ApiState<JSONObject?> {
-        val url = "$baseUrl/post/create"
-        val params = mapOf(
-            "content" to content,
-            "mediaUrls" to mediaUrls,
-            "mediaType" to mediaType,
-            "postType" to mediaType,
-            "topicIds" to topicIds,
-            "visibility" to visibility
-        )
-        val result = httpClient.postJson(url, params, null) { json ->
             json.optJSONObject("data")
         }
         @Suppress("UNCHECKED_CAST")
@@ -112,18 +52,37 @@ class ApiService private constructor(context: Context) {
      */
     suspend fun formDataUpload(
         bucketType: String = "ACCOMPANY",
-        fileName: String = ""
     ): ApiState<JSONObject?> {
         val url = "$baseUrl/file/formDataUpload"
         val params = mapOf(
             "bucketType" to bucketType,
-            "fileName" to fileName
         )
-        val result = httpClient.postJson(url, params, null) { json ->
+
+        // 从 TokenStorage 读取 token 并构建请求头，与 Flutter 端保持一致
+        val token = TokenStorage.getAuthorizationHeader()
+        Log.d("wangling", "formDataUpload token: "+token)
+        val headers = buildAppHeaders(token)
+        Log.d("wangling", "formDataUpload headers: "+headers)
+
+        val result = httpClient.postJson(url, params, headers) { json ->
             json.optJSONObject("data")
         }
         @Suppress("UNCHECKED_CAST")
         return result as ApiState<JSONObject?>
     }
 
+    /**
+     * 构建应用请求头（与 Flutter 端 headers 保持一致）
+     * @param token 认证 token（可选）
+     */
+    private fun buildAppHeaders(token: String?): Map<String, String> {
+        return buildMap {
+            put(ApiConfig.HEADER_CONTENT_TYPE, ApiConfig.CONTENT_TYPE_JSON)
+            put(ApiConfig.HEADER_ACCEPT, "application/json")
+            put(ApiConfig.HEADER_X_DEVICE, ApiConfig.DEVICE_APP)
+            if (!token.isNullOrBlank()) {
+                put(ApiConfig.HEADER_AUTHORIZATION, token)
+            }
+        }
+    }
 }

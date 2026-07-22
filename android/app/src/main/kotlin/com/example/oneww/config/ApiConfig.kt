@@ -16,7 +16,7 @@ object ApiConfig {
     const val HEADER_CONTENT_TYPE = "Content-Type"
     const val HEADER_ACCEPT = "Accept"
     const val HEADER_X_DEVICE = "x-device"
-    const val HEADER_AUTHORIZATION = "Authorization"
+    const val HEADER_AUTHORIZATION = "authorization"
 
     // 请求头默认值
     const val CONTENT_TYPE_JSON = "application/json"

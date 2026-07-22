@@ -3,7 +3,7 @@ package com.example.oneww.net
 import android.content.Context
 import android.util.Log
 import com.example.oneww.config.ApiConfig
-import com.example.oneww.utils.TokenManager
+import com.example.oneww.utils.TokenStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit
  */
 class HttpClient private constructor(context: Context) {
 
-    private val tokenManager = TokenManager.getInstance(context)
     private val okHttpClient: OkHttpClient
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -341,9 +340,7 @@ internal class LogInterceptor : Interceptor {
 internal class AuthInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
-        val tokenManager = TokenManager.getInstance(AppContextProvider.get())
-
-        val token = tokenManager.getAuthorizationHeader()
+        val token = TokenStorage.getAuthorizationHeader()
 
         if (token.isNullOrBlank()) {
             return chain.proceed(originalRequest)

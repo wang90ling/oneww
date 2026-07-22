@@ -3,8 +3,11 @@ package com.example.oneww
 import android.util.Log
 import com.example.oneww.file.CosUploadConfig
 import com.example.oneww.file.CosUploader
+import com.example.oneww.file.FormDataUploadResponse
 import com.example.oneww.net.ApiService
 import com.example.oneww.net.ApiState
+import com.example.oneww.net.TokenChannel
+import com.example.oneww.utils.TokenStorage
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -28,6 +31,9 @@ class MainActivity : FlutterFragmentActivity() {
 
         cosUploader = CosUploader(applicationContext)
 
+        // 初始化 Token 同步通道（接收 Flutter 同步的登录 token）
+        TokenChannel(flutterEngine)
+
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, PROGRESS_CHANNEL)
             .setStreamHandler(
                 object : EventChannel.StreamHandler {
@@ -41,7 +47,7 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             )
 
-        initCosUploader()
+        //initCosUploader()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPLOAD_CHANNEL)
             .setMethodCallHandler { call, result ->
@@ -73,18 +79,19 @@ class MainActivity : FlutterFragmentActivity() {
                                     region = region,
                                     bucket = bucket,
                                 )
-                                Log.d("wangling", "cosConfig=$cosConfig")
+
                                 postProgress(0.2)
 
-                                //首先获取上传资源的一些签名文件
+                                //获取上传资源的一些签名文件
+                                initCosUploader()
 
-                               /* val url = cosUploader.uploadFile(
-                                    filePath = path,
-                                    fileName = fileName,
-                                    config = cosConfig,
-                                    objectKey = objectKey,
-                                    onProgress = { progress -> postProgress(progress) }
-                                )*/
+                                /* val url = cosUploader.uploadFile(
+                                     filePath = path,
+                                     fileName = fileName,
+                                     config = cosConfig,
+                                     objectKey = objectKey,
+                                     onProgress = { progress -> postProgress(progress) }
+                                 )*/
 
                                 postProgress(1.0)
                                 runOnUiThread { result.success("") }
@@ -109,29 +116,47 @@ class MainActivity : FlutterFragmentActivity() {
         progressSink?.success(value.coerceIn(0.0, 1.0))
     }
 
-    //初始化腾讯cos文件上传逻辑
+    // 初始化腾讯cos文件上传逻辑
     fun initCosUploader(){
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
+                // 检查 token 是否已同步
+                val token = TokenStorage.getAuthorizationHeader()
+                if (token.isNullOrBlank()) {
+                    Log.w("wangling", "initCosUploader: Token 未同步，请确保用户已登录并调用 TokenSyncService.syncTokenToNative()")
+                } else {
+                    Log.d("wangling", "initCosUploader: Token 已就绪，开始获取上传签名信息")
+                }
+
                 val apiService = ApiService.getInstance(this@MainActivity)
 
-                // 示例：获取用户信息
+                // 获取上传签名信息
                 val formDataUploadResult = apiService.formDataUpload()
                 when (formDataUploadResult) {
                     is ApiState.Success -> {
-                        val userData = formDataUploadResult.data
-                        Log.d("wangling", "formDataUpload信息: $userData")
+                        val formDataUploadData = formDataUploadResult.data as FormDataUploadResponse;
+                        Log.d("wangling", "initCosUploader: 获取上传签名信息成功: $formDataUploadData")
+                        //继续实现上传逻辑
+
+                        /*val url = cosUploader.uploadFile(
+                            filePath = path,
+                            fileName = fileName,
+                            config = cosConfig,
+                            objectKey = objectKey,
+                            onProgress = { progress -> postProgress(progress) }
+                        )*/
+
                     }
                     is ApiState.Error -> {
-                        Log.e("wangling", "获取formDataUpload信息失败: ${formDataUploadResult.message}")
+                        Log.e("wangling", "initCosUploader: 获取上传签名信息失败: ${formDataUploadResult.message}")
                     }
                     is ApiState.Exception -> {
-                        Log.e("wangling", "获取formDataUpload信息异常: ${formDataUploadResult.throwable.message}")
+                        Log.e("wangling", "initCosUploader: 获取上传签名信息异常: ${formDataUploadResult.throwable?.message}")
                     }
                 }
 
             } catch (e: Exception) {
-                Log.e("Demo", "API 调用异常", e)
+                Log.e("wangling", "initCosUploader: API 调用异常", e)
             }
         }
     }

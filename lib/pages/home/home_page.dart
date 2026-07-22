@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
+import '../../core/helpers/token_sync_service.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/network_client.dart';
 import '../../models/banner_respose_entity.dart';
@@ -125,6 +126,8 @@ class _HomePageState extends State<HomePage> {
         _isLoadingDispatchRooms = false;
       });
       await AuthStorage.clearSession();
+      // 清除 Android Native 端的 token
+      await TokenSyncService.clearNativeToken();
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),

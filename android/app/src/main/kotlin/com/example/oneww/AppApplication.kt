@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.example.oneww.config.ApiConfig
 import com.example.oneww.net.AppContextProvider
+import com.example.oneww.utils.TokenStorage
 
 /**
  * 应用 Application 类
@@ -16,6 +17,9 @@ class AppApplication : Application() {
 
         // 初始化 Context Provider
         AppContextProvider.init(this)
+
+        // 初始化 Token 存储（支持 Flutter 通过 MethodChannel 同步 token）
+        TokenStorage.init(this)
 
         // 初始化日志
         Log.d(ApiConfig.TAG, "Application initialized")

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/helpers/auth_storage.dart';
+import '../../core/helpers/token_sync_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../../models/user_detail_response_entity.dart';
 import '../../repositories/profile_me_repository.dart';
@@ -50,6 +51,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _handleLogout() async {
     await AuthStorage.clearSession();
+    // 清除 Android Native 端的 token
+    await TokenSyncService.clearNativeToken();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),

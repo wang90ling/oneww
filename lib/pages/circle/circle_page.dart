@@ -315,7 +315,7 @@ class _CirclePostCard extends StatelessWidget {
   List<_MediaPreview> get _medias {
     final result = <_MediaPreview>[];
     final details = post.fileDetails ?? <PostListResponseDataFileDetails>[];
-    AppLogger.info("details:"+details.toString(),tag: "wangling");
+    //AppLogger.info("details:"+details.toString(),tag: "wangling");
     for (final item in details) {
       final fileUrl = (item.fileUrl ?? '').trim();
       final coverUrl = (item.firstSnapshot ?? '').trim();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/helpers/app_logger.dart';
 import '../../core/helpers/auth_storage.dart';
+import '../../core/helpers/token_sync_service.dart';
 import '../../core/network/network_client.dart';
 import '../../models/accompany_category_detail_entity.dart';
 import '../../models/home_new_recommend_entity.dart';
@@ -83,6 +84,8 @@ class _PersonalDetailPageState extends State<PersonalDetailPage> {
 
   Future<void> _handleUnauthorized() async {
     await AuthStorage.clearSession();
+    // 清除 Android Native 端的 token
+    await TokenSyncService.clearNativeToken();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),

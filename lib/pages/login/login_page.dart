@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/helpers/auth_storage.dart';
+import '../../core/helpers/token_sync_service.dart';
 import '../../core/network/api_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../home/home_page.dart';
@@ -118,6 +119,8 @@ class _LoginPageState extends State<LoginPage> {
       final token = _extractToken(result);
       if (token != null && token.isNotEmpty) {
         await AuthStorage.saveToken(token);
+        // 同步 token 到 Android Native 端（解决 Native 请求缺少 token 的问题）
+        await TokenSyncService.syncTokenToNative();
       }
 
       final userInfo = _extractUserInfo(result);
