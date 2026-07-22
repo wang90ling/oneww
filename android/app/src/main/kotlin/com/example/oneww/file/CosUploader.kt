@@ -27,9 +27,9 @@ class CosUploader(private val context: Context) {
     /**
      * 异步上传文件到腾讯云 COS
      * @param srcPath 本地文件路径
-     * @param fileName 文件名（如果为 null，则自动生成）
+     * @param fileName 原始文件名（用于生成 COS 对象键）
      * @param response 从服务端获取的上传凭证
-     * @param objectKey 自定义的对象存储路径（可选）
+     * @param objectKey 自定义的对象存储路径（可选，如果提供则优先使用）
      * @param onProgress 进度回调 (0.0 ~ 1.0)
      * @return 上传成功后的文件访问 URL
      * @throws CosUploadException 上传失败时抛出异常
@@ -42,34 +42,31 @@ class CosUploader(private val context: Context) {
         onProgress: ((Double) -> Unit)? = null
     ): String = suspendCancellableCoroutine { continuation ->
         val file = File(srcPath)
-
-
+        val originalFileName = fileName ?: file.name
         val filename = (System.currentTimeMillis().toString() + (Math.random() * 1000).toInt()
             .toString()).substring(5) + "_" + file.name
 
-
-        // 1、解析服务端返回的上传凭证
-        val startTime = response.startTime.toLongOrNull() ?: System.currentTimeMillis() / 1000
-        val expiredTime = response.expiredTime.toLongOrNull() ?: (startTime + 3600)
-        // 1、从服务端请求上传和签名信息
         val cosPath = response.filePath + "/" + filename
 
+        // 2、解析凭证
+        val startTime = response.startTime.toLongOrNull() ?: (System.currentTimeMillis() / 1000)
+        val expiredTime = response.expiredTime.toLongOrNull() ?: (startTime + 3600)
         val tmpSecretId = response.secretId ?: ""
         val tmpSecretKey = response.secretKey ?: ""
         val sessionToken = response.sessionToken ?: ""
 
-        // 2、解析 endpoint 获取 bucket 和 region
+        // 3、解析 endpoint 获取 bucket 和 region
         val (bucket, region) = parseEndpoint(response.endpoint)
 
-        Log.d("CosUploader", "uploadFile: 开始上传")
-        Log.d("CosUploader", "  - srcPath: $srcPath")
-        Log.d("CosUploader", "  - cosPath: $cosPath")
-        Log.d("CosUploader", "  - bucket: $bucket")
-        Log.d("CosUploader", "  - region: $region")
-        Log.d("CosUploader", "  - tmpSecretId: ${tmpSecretId.take(8)}...")
-        Log.d("CosUploader", "  - sessionToken: ${sessionToken.take(8)}...")
+        Log.d(TAG, "uploadFile: 开始上传")
+        Log.d(TAG, "  - srcPath: $srcPath")
+        Log.d(TAG, "  - cosPath: $cosPath")
+        Log.d(TAG, "  - bucket: $bucket")
+        Log.d(TAG, "  - region: $region")
+        Log.d(TAG, "  - tmpSecretId: ${tmpSecretId.take(8)}...")
+        Log.d(TAG, "  - sessionToken: ${sessionToken.take(8)}...")
 
-        // 3、初始化 COS SDK: CosXmlService 和 TransferManager
+        // 4、初始化 COS SDK
         val cosXmlServiceConfig = CosXmlServiceConfig.Builder()
             .setRegion(region)
             .isHttps(true)
@@ -79,25 +76,34 @@ class CosUploader(private val context: Context) {
         val transferConfig = TransferConfig.Builder().build()
         val transferManager = TransferManager(cosXmlService, transferConfig)
 
-        // 4、创建上传请求
-        val putRequest = PutRequest(bucket, cosPath, srcPath, tmpSecretId, tmpSecretKey, sessionToken, startTime, expiredTime)
+        // 5、创建上传请求
+        val putRequest = PutRequest(
+            bucket,
+            cosPath,
+            srcPath,
+            tmpSecretId,
+            tmpSecretKey,
+            sessionToken,
+            startTime,
+            expiredTime
+        )
 
-        // 5、执行上传
+        // 6、执行上传
         val uploadTask = transferManager.upload(putRequest, null)
 
-        // 6、设置上传进度回调
-        uploadTask.setCosXmlProgressListener { complete, target ->
-            Log.d("CosUploader", "上传进度: ${(complete * 100).toInt()}%")
+        // 7、设置上传进度回调
+        uploadTask.setCosXmlProgressListener { complete, _ ->
+            Log.d(TAG, "上传进度: ${(complete * 100).toInt()}%")
             onProgress?.invoke(complete.toDouble())
         }
 
-        // 7、设置返回结果回调
+        // 8、设置返回结果回调
         uploadTask.setCosXmlResultListener(object : CosXmlResultListener {
             override fun onSuccess(request: CosXmlRequest?, result: CosXmlResult?) {
                 val uploadedUrl = buildResultUrl(bucket, region, cosPath)
-                Log.d("CosUploader", "上传成功: $uploadedUrl")
+                Log.d(TAG, "上传成功: $uploadedUrl")
                 onProgress?.invoke(1.0)
-                continuation.resume(uploadedUrl)
+                continuation.resume(uploadedUrl.replace("https://dianta-app-1334254576.cos.ap-beijing.myqcloud.com/",""))
             }
 
             override fun onFail(
@@ -110,20 +116,21 @@ class CosUploader(private val context: Context) {
                     serviceException != null -> "服务端错误: ${serviceException.message}"
                     else -> "未知错误"
                 }
-                Log.e("CosUploader", "上传失败: $errorMsg")
+                Log.e(TAG, "上传失败: $errorMsg")
                 continuation.resumeWithException(CosUploadException(errorMsg))
             }
         })
 
-        // 8、处理协程取消
+        // 9、处理协程取消
         continuation.invokeOnCancellation {
-            Log.d("CosUploader", "上传任务已取消")
+            Log.d(TAG, "上传任务已取消")
             uploadTask.cancel()
         }
     }
 
     /**
-     * 构建 COS 存储路径
+     * 构建 COS 对象存储路径
+     * 优先级：objectKey > (filePath + 自动生成文件名) > 自动生成文件名
      */
     private fun buildCosPath(basePath: String?, originalFileName: String, customKey: String?): String {
         // 如果有自定义路径，直接使用
@@ -131,7 +138,7 @@ class CosUploader(private val context: Context) {
             return customKey.removePrefix("/")
         }
 
-        // 自动生成文件名：时间戳_随机数_原文件名
+        // 生成文件名：时间戳_随机数_原文件名
         val timestamp = System.currentTimeMillis()
         val randomSuffix = (Math.random() * 1000).toInt()
         val extension = originalFileName.substringAfterLast('.', "")
@@ -157,12 +164,12 @@ class CosUploader(private val context: Context) {
             if (parts.size >= 3) {
                 Pair(parts[0], parts[2])
             } else {
-                Log.w("CosUploader", "parseEndpoint: 无法解析 endpoint: $endpoint，使用默认值")
-                Pair("dianta-app-1334254576", "ap-beijing")
+                Log.w(TAG, "parseEndpoint: 无法解析 endpoint: $endpoint，使用默认值")
+                Pair(DEFAULT_BUCKET, DEFAULT_REGION)
             }
         } catch (e: Exception) {
-            Log.e("CosUploader", "parseEndpoint: 解析失败: ${e.message}")
-            Pair("dianta-app-1334254576", "ap-beijing")
+            Log.e(TAG, "parseEndpoint: 解析失败: ${e.message}")
+            Pair(DEFAULT_BUCKET, DEFAULT_REGION)
         }
     }
 
@@ -171,6 +178,12 @@ class CosUploader(private val context: Context) {
      */
     private fun buildResultUrl(bucket: String, region: String, cosPath: String): String {
         return "https://$bucket.cos.$region.myqcloud.com/$cosPath"
+    }
+
+    companion object {
+        private const val TAG = "CosUploader"
+        private const val DEFAULT_BUCKET = "dianta-app-1334254576"
+        private const val DEFAULT_REGION = "ap-beijing"
     }
 }
 

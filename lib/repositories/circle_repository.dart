@@ -15,7 +15,10 @@ class CosUploadConfig {
     required this.sessionToken,
     required this.region,
     required this.bucket,
+    this.endpoint,
     this.objectKey,
+    required this.startTime,
+    required this.expiredTime,
   });
 
   final String secretId;
@@ -23,7 +26,10 @@ class CosUploadConfig {
   final String sessionToken;
   final String region;
   final String bucket;
+  final String? endpoint;
   final String? objectKey;
+  final int startTime;
+  final int expiredTime;
 
   String get fileUrlPrefix => 'https://$bucket.cos.$region.myqcloud.com/';
 
@@ -98,13 +104,16 @@ class CircleRepository {
   }
 
   CosUploadConfig _createDefaultCosConfig() {
-    return CosUploadConfig(
+    return const CosUploadConfig(
       secretId: '',
       secretKey: '',
       sessionToken: '',
       region: 'ap-beijing',
       bucket: 'dianta-app-1334254576',
+      endpoint: null,
       objectKey: null,
+      startTime: 0,
+      expiredTime: 0,
     );
   }
 
@@ -177,20 +186,24 @@ class CircleRepository {
       sessionToken: data.sessionToken,
       region: _extractCosRegion(data.endpoint),
       bucket: bucketName,
+      endpoint: data.endpoint,
       objectKey: objectKey,
+      startTime: data.startTime,
+      expiredTime: data.expiredTime,
     );
   }
 
   Future<String> uploadMediaFile(XFile file, {required CosUploadConfig config}) async {
+    // Android Native 上传，返回完整 URL
     final fullUrl = await TencentCosUploadService.uploadFile(
       path: file.path,
       fileName: file.name,
       config: config,
       objectKey: config.objectKey,
     );
-    final objectKey = config.extractObjectKey(fullUrl) ?? config.objectKey ?? fullUrl;
-    AppLogger.info('uploadMediaFile: fullUrl=$fullUrl, objectKey=$objectKey', tag: 'wangling');
-    return objectKey;
+    AppLogger.info('uploadMediaFile: fullUrl=$fullUrl', tag: 'wangling');
+    // 直接返回完整 URL，让后端处理
+    return fullUrl;
   }
 
   String _extractCosRegion(String endpoint) {

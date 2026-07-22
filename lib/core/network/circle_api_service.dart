@@ -173,16 +173,21 @@ class CircleApiService {
         'x-device': 'APP',
         if (token != null && token.isNotEmpty) 'authorization': token,
       },
+      //{"content":"55667788",
+      // "files":["2026/7/22/d112c5a8edeb44b0a5ae914713cac04d/09976140888_1784709956272331.jpeg"],
+      // "mediaType":1,
+      // "subjectIds":[1984201677346484225],
+      // "visibleScope":10}
+      //这里一定要注意的是 files传递的是上面的格式。一定不要传递错误了。
       body: <String, dynamic>{
         'content': content,
-        'mediaUrls': mediaUrls,
+        'files': mediaUrls,//["2026/7/22/d112c5a8edeb44b0a5ae914713cac04d/09976140888_1784709956272331.jpeg"],
         'mediaType': mediaType,
-        'postType': mediaType,
-        'topicIds': topicIds,
-        'visibility': visibility,
+        'subjectIds': [1984201677346484225],
+        'visibleScope': 10,
       },
     );
-    AppLogger.info('createCirclePost response: $response, body: mediaUrls=$mediaUrls, mediaType=$mediaType', tag: 'wangling');
+    AppLogger.info('createCirclePost response: $response, body: files=$mediaUrls, mediaType=$mediaType', tag: 'wangling');
 
     final message = response['message']?.toString();
     if (message != null && message.isNotEmpty) return message;
