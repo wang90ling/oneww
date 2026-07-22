@@ -1,6 +1,7 @@
 package com.example.oneww
 
 import android.util.Log
+import com.example.oneww.file.CosUploadException
 import com.example.oneww.file.CosUploadConfig
 import com.example.oneww.file.CosUploader
 import com.example.oneww.file.FormDataUploadResponse
@@ -14,7 +15,10 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import kotlin.concurrent.thread
 
 class MainActivity : FlutterFragmentActivity() {
@@ -22,6 +26,9 @@ class MainActivity : FlutterFragmentActivity() {
         const val UPLOAD_CHANNEL = "tencent_cos_upload"
         const val PROGRESS_CHANNEL = "tencent_cos_upload_progress"
     }
+
+    // 使用 SupervisorJob 确保子协程异常不会影响父协程
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var progressSink: EventChannel.EventSink? = null
     private lateinit var cosUploader: CosUploader
@@ -47,62 +54,90 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             )
 
-        //initCosUploader()
-
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPLOAD_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "uploadFile" -> {
                         val path = call.argument<String>("path")
                         val fileName = call.argument<String>("fileName")
-                        val secretId = call.argument<String>("secretId")
-                        val secretKey = call.argument<String>("secretKey")
-                        val sessionToken = call.argument<String>("sessionToken")
-                        val region = call.argument<String>("region")
-                        val bucket = call.argument<String>("bucket")
                         val objectKey = call.argument<String>("objectKey")
 
-                        Log.d("wangling", "secretId=$secretId, secretKey=$secretKey, sessionToken=$sessionToken, region=$region, bucket=$bucket, objectKey=$objectKey")
+                        Log.d("MainActivity", "uploadFile 请求: path=$path, fileName=$fileName, objectKey=$objectKey")
 
-                        if (path.isNullOrBlank() || fileName.isNullOrBlank() || secretId.isNullOrBlank() || secretKey.isNullOrBlank() || sessionToken.isNullOrBlank() || region.isNullOrBlank() || bucket.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "Missing upload arguments", null)
+                        if (path.isNullOrBlank()) {
+                            result.error("INVALID_ARGS", "文件路径不能为空", null)
                             return@setMethodCallHandler
                         }
 
-                        thread(name = "cos-upload-thread") {
+                        // 启动协程执行上传
+                        activityScope.launch {
                             try {
-                                postProgress(0.05)
-                                val cosConfig = CosUploadConfig(
-                                    secretId = secretId,
-                                    secretKey = secretKey,
-                                    sessionToken = sessionToken,
-                                    region = region,
-                                    bucket = bucket,
+                                postProgress(0.05f)
+
+                                // 1、获取上传凭证
+                                postProgress(0.1f)
+                                Log.d("MainActivity", "开始获取上传凭证...")
+
+                                val formDataUploadData = getFormDataUploadResponse()
+                                if (formDataUploadData == null) {
+                                    result.error("GET_CREDENTIAL_FAILED", "获取上传凭证失败", null)
+                                    return@launch
+                                }
+
+                                Log.d("MainActivity", "获取上传凭证成功: endpoint=${formDataUploadData.endpoint}")
+
+                                // 2、执行文件上传
+                                postProgress(0.3f)
+                                Log.d("MainActivity", "开始上传文件...")
+
+                                val uploadedUrl = uploadFileToCos(
+                                    srcPath = path,
+                                    fileName = fileName,
+                                    response = formDataUploadData,
+                                    objectKey = objectKey
                                 )
 
-                                postProgress(0.2)
+                                // 3、上传成功
+                                postProgress(1.0f)
+                                Log.d("MainActivity", "上传成功: $uploadedUrl")
+                                result.success(uploadedUrl)
 
-                                //获取上传资源的一些签名文件
-                                initCosUploader()
+                            } catch (e: CosUploadException) {
+                                Log.e("MainActivity", "上传失败: ${e.message}")
+                                result.error("UPLOAD_FAILED", e.message, null)
 
-                                /* val url = cosUploader.uploadFile(
-                                     filePath = path,
-                                     fileName = fileName,
-                                     config = cosConfig,
-                                     objectKey = objectKey,
-                                     onProgress = { progress -> postProgress(progress) }
-                                 )*/
-
-                                postProgress(1.0)
-                                runOnUiThread { result.success("") }
                             } catch (e: Exception) {
-                                runOnUiThread {
-                                    result.error(
-                                        "UPLOAD_FAILED",
-                                        e.message ?: "upload failed",
-                                        e.toString()
+                                Log.e("MainActivity", "上传异常: ${e.message}", e)
+                                result.error("UPLOAD_EXCEPTION", e.message ?: "未知错误", e.toString())
+                            }
+                        }
+                    }
+
+                    "getUploadCredential" -> {
+                        // 仅获取上传凭证（不执行上传）
+                        activityScope.launch {
+                            try {
+                                postProgress(0.5f)
+                                val formDataUploadData = getFormDataUploadResponse()
+                                postProgress(1.0f)
+
+                                if (formDataUploadData != null) {
+                                    // 将凭证转换为 Map 返回给 Flutter
+                                    val credentialMap = mapOf(
+                                        "endpoint" to formDataUploadData.endpoint,
+                                        "filePath" to formDataUploadData.filePath,
+                                        "secretId" to formDataUploadData.secretId,
+                                        "secretKey" to formDataUploadData.secretKey,
+                                        "sessionToken" to formDataUploadData.sessionToken,
+                                        "startTime" to formDataUploadData.startTime,
+                                        "expiredTime" to formDataUploadData.expiredTime
                                     )
+                                    result.success(credentialMap)
+                                } else {
+                                    result.error("GET_CREDENTIAL_FAILED", "获取上传凭证失败", null)
                                 }
+                            } catch (e: Exception) {
+                                result.error("GET_CREDENTIAL_EXCEPTION", e.message, null)
                             }
                         }
                     }
@@ -112,52 +147,89 @@ class MainActivity : FlutterFragmentActivity() {
             }
     }
 
-    private fun postProgress(value: Double) {
-        progressSink?.success(value.coerceIn(0.0, 1.0))
-    }
-
-    // 初始化腾讯cos文件上传逻辑
-    fun initCosUploader(){
-        CoroutineScope(Dispatchers.IO).launch {
+    /**
+     * 获取文件上传凭证
+     */
+    private suspend fun getFormDataUploadResponse(): FormDataUploadResponse? {
+        return withContext(Dispatchers.IO) {
             try {
-                // 检查 token 是否已同步
-                val token = TokenStorage.getAuthorizationHeader()
-                if (token.isNullOrBlank()) {
-                    Log.w("wangling", "initCosUploader: Token 未同步，请确保用户已登录并调用 TokenSyncService.syncTokenToNative()")
-                } else {
-                    Log.d("wangling", "initCosUploader: Token 已就绪，开始获取上传签名信息")
-                }
-
                 val apiService = ApiService.getInstance(this@MainActivity)
+                val result = apiService.formDataUpload()
 
-                // 获取上传签名信息
-                val formDataUploadResult = apiService.formDataUpload()
-                when (formDataUploadResult) {
+                when (result) {
                     is ApiState.Success -> {
-                        val formDataUploadData = formDataUploadResult.data as FormDataUploadResponse;
-                        Log.d("wangling", "initCosUploader: 获取上传签名信息成功: $formDataUploadData")
-                        //继续实现上传逻辑
-
-                        /*val url = cosUploader.uploadFile(
-                            filePath = path,
-                            fileName = fileName,
-                            config = cosConfig,
-                            objectKey = objectKey,
-                            onProgress = { progress -> postProgress(progress) }
-                        )*/
-
+                        val jsonObject = result.data
+                        if (jsonObject != null) {
+                            parseFormDataUploadResponse(jsonObject)
+                        } else {
+                            Log.e("MainActivity", "getFormDataUploadResponse: 返回数据为空")
+                            null
+                        }
                     }
                     is ApiState.Error -> {
-                        Log.e("wangling", "initCosUploader: 获取上传签名信息失败: ${formDataUploadResult.message}")
+                        Log.e("MainActivity", "getFormDataUploadResponse: API错误 ${result.code} - ${result.message}")
+                        null
                     }
                     is ApiState.Exception -> {
-                        Log.e("wangling", "initCosUploader: 获取上传签名信息异常: ${formDataUploadResult.throwable?.message}")
+                        Log.e("MainActivity", "getFormDataUploadResponse: 异常 ${result.throwable?.message}")
+                        null
                     }
                 }
-
             } catch (e: Exception) {
-                Log.e("wangling", "initCosUploader: API 调用异常", e)
+                Log.e("MainActivity", "getFormDataUploadResponse: 捕获异常", e)
+                null
             }
+        }
+    }
+
+    /**
+     * 将 JSONObject 解析为 FormDataUploadResponse
+     */
+    private fun parseFormDataUploadResponse(json: JSONObject): FormDataUploadResponse {
+        return FormDataUploadResponse(
+            accessKeyId = json.optString("accessKeyId", "").takeIf { it.isNotBlank() },
+            endpoint = json.optString("endpoint", ""),
+            expiredTime = json.optString("expiredTime", ""),
+            filePath = json.optString("filePath", "").takeIf { it.isNotBlank() },
+            policy = json.optString("policy", "").takeIf { it.isNotBlank() },
+            requestId = json.optString("requestId", "").takeIf { it.isNotBlank() },
+            secretId = json.optString("secretId", "").takeIf { it.isNotBlank() },
+            secretKey = json.optString("secretKey", "").takeIf { it.isNotBlank() },
+            sessionToken = json.optString("sessionToken", "").takeIf { it.isNotBlank() },
+            signMap = json.optString("signMap", "").takeIf { it.isNotBlank() },
+            signature = json.optString("signature", "").takeIf { it.isNotBlank() },
+            startTime = json.optString("startTime", "")
+        )
+    }
+
+    /**
+     * 执行文件上传到腾讯云 COS
+     */
+    private suspend fun uploadFileToCos(
+        srcPath: String,
+        fileName: String?,
+        response: FormDataUploadResponse,
+        objectKey: String?
+    ): String {
+        return cosUploader.uploadFile(
+            srcPath = srcPath,
+            fileName = fileName,
+            response = response,
+            objectKey = objectKey,
+            onProgress = { progress ->
+                // 将进度转换到 0.3~1.0 范围（保留 0.1~0.3 给获取凭证阶段）
+                val adjustedProgress = 0.3f + (progress.toFloat() * 0.7f)
+                postProgress(adjustedProgress)
+            }
+        )
+    }
+
+    /**
+     * 发送上传进度到 Flutter
+     */
+    private fun postProgress(value: Float) {
+        activityScope.launch {
+            progressSink?.success(value.coerceIn(0.0F, 1.0F).toDouble())
         }
     }
 
